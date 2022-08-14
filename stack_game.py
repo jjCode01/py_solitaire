@@ -1,79 +1,79 @@
 from os import system, name
-from random import shuffle
 
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
-
-
-# class Stack:
-#     @staticmethod
-#     def verify_val(val: int) -> None:
-#         if not isinstance(val, int) or 0 >= val > 13:
-#             raise ValueError(
-#                 "Value Error: size argument must be an int between 1 and 13"
-#             )
-
-#     def __init__(self, val: int) -> None:
-#         self.verify_val(val)
-#         self._vals = [val]
-
-#     def __len__(self) -> int:
-#         return len(self._vals)
-
-#     def __getitem__(self, index: int) -> int:
-#         return self._vals[index]
-
-#     def __add__(self, vals: list) -> None:
-#         self._vals += vals
+from modules.card import Card
 
 
 class GridGame:
-    def __init__(self, size=1) -> None:
-        if not isinstance(size, int) or size <= 0:
-            raise ValueError("Value Error: size argument must be a positive int")
+    def __init__(self) -> None:
         self.deck = Deck(get_playing_cards(), shuffled=True)
         self._set_card_values()
 
-        self.stacks = [[] for _ in range(7)]
+        self.stacks2 = {i: [] for i in "1234567ABCD"}
         self.draw_cards = []
 
-        for i in range(7):
-            self.stacks[i].append(self.deck.deal_card())
+        for i in range(1, 8):
+            self.stacks2[str(i)].append(self.deck.deal_card())
 
-            for j in range(i + 1, 7):
-                self.stacks[j].append(self.deck.deal_card(face_down=True))
-
-        # self.stacks = [[self.deck.deal_card()] for _ in range(7)]
+            for j in range(i + 1, 8):
+                self.stacks2[str(j)].append(self.deck.deal_card(face_down=True))
 
     def __str__(self) -> str:
+        def _card_color(card: Card) -> str:
+            if card.face_down:
+                return "\033[48;5;20m"
+
+            if card.suit in ("H", "D"):
+                return "\033[48;5;15m\033[38;5;124m"
+
+            return "\033[48;5;15m\033[38;5;236m"
+
+        def _card_str(card: Card) -> str:
+            if card.face_down:
+                return "\033[48;5;20m --- \033[m"
+
+            SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
+            if card.face == "10":
+                return f"{_card_color(card)}{card.face}{SUIT_IMAGES[card.suit]} \033[m"
+            return f"{_card_color(card)} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
+
         s = ""
-        for col in ["A", "B", "C", "D"]:
-            s += f'|{" " * (3 - len(str(col)))}{col} '
-        s += "|\n"
-        s += f"{'+----' * 4}+\n"
-        s += f"{'|    ' * 4}"
+
+        # Aces Row
+        for col in "ABCD":
+            s += f"|  {col}  "
+        s += f"|\n{'+-----' * 4}+\n"
+        for col in "ABCD":
+            if self.stacks2[col]:
+                card = self.stacks2.get(col)[-1]
+                s += f'|{_card_color(card)} {" " * (3 - len(str(card)))}{card} \033[m'
+            else:
+                s += "|     "
         s += "|\n\n"
 
-        tallest = max([len(stack) for stack in self.stacks if stack])
-        for col in range(len(self.stacks)):
-            s += f'|{" " * (3 - len(str(col)))}{col} '
+        tallest = 20
+        for col in "1234567":
+            s += f"|  {col}  "
         s += "|\n"
-        s += f"{'+----' * len(self.stacks)}+\n"
-        for col in range(tallest):
-            for stack in self.stacks:
-                if stack and col < len(stack):
-                    s += f'|{" " * (3 - len(str(stack[col])))}{stack[col]} '
+        s += f"{'+-----' * 7}+\n"
+        for row in range(tallest):
+            for col in "1234567":
+                if self.stacks2.get(col) and row < len(self.stacks2.get(col)):
+                    card: Card = self.stacks2.get(col)[row]
+                    s += f'|{_card_color(card)} {" " * (3 - len(str(card)))}{card} \033[m'
                 else:
-                    s += "|    "
+                    s += "|     "
 
             s += "|\n"
 
-        s += "\n|  P |\n"
-        s += "+----+\n"
+        s += f"\n|  P  |  Deck: {len(self.deck)}\n"
+        s += "+-----+\n"
+
         s += (
-            "|    |"
+            "|     |\n"
             if not self.draw_cards
-            else f'|{" " * (3 - len(str(self.draw_cards[-1])))}{self.draw_cards[-1]} |'
+            else f'|{_card_color(self.draw_cards[-1])} {" " * (3 - len(str(self.draw_cards[-1])))}{self.draw_cards[-1]} \033[m|\n'
         )
 
         return s
@@ -81,86 +81,124 @@ class GridGame:
     def _set_card_values(self) -> None:
         face_values = {
             "A": 0,
-            "2": 2,
-            "3": 4,
-            "4": 6,
-            "5": 8,
-            "6": 10,
-            "7": 12,
-            "8": 14,
-            "9": 16,
-            "10": 18,
-            "J": 20,
-            "Q": 22,
-            "K": 24,
+            "2": 1,
+            "3": 2,
+            "4": 3,
+            "5": 4,
+            "6": 5,
+            "7": 6,
+            "8": 7,
+            "9": 8,
+            "10": 9,
+            "J": 10,
+            "Q": 11,
+            "K": 12,
         }
 
-        suit_values = {"C": 0, "D": 1, "S": 0, "H": 1}
-
         for card in self.deck:
-            print(f"{face_values.get(card.face) + suit_values[card.suit]}")
-            card.value = face_values[card.face] + suit_values[card.suit]
+            card.value = face_values[card.face]
 
-    def move_stack(self, stack_to_move: int, move_to_stack: int) -> bool:
-        if not isinstance(stack_to_move, int) or not isinstance(move_to_stack, int):
-            raise ValueError("Value Error: arguments must be integers")
+    def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
+        def _verify_play(move_card: Card, to_stack: str) -> bool:
+            if (
+                (
+                    to_stack in "1234567"
+                    and not self.stacks2[to_stack]
+                    and move_card.face == "K"
+                )
+                or (
+                    to_stack in "1234567"
+                    and self.stacks2[to_stack]
+                    and move_card.value == self.stacks2[to_stack][-1].value - 1
+                    and suit_values[move_card.suit]
+                    != suit_values[self.stacks2[to_stack][-1].suit]
+                )
+                or (
+                    to_stack in "ABCD"
+                    and not self.stacks2[to_stack]
+                    and move_card.face == "A"
+                )
+                or (
+                    to_stack in "ABCD"
+                    and self.stacks2[to_stack]
+                    and move_card.suit == self.stacks2[to_stack][-1].suit
+                    and move_card.value == self.stacks2[to_stack][-1].value + 1
+                )
+            ):
+                return True
+            return False
 
-        if stack_to_move < 0 or move_to_stack < 0:
-            raise ValueError("Value Error: arguments cannot be less than 0")
+        stack_to_move = stack_to_move.upper()
+        move_to_stack = move_to_stack.upper()
 
-        if stack_to_move >= len(self.stacks) or move_to_stack >= len(self.stacks):
-            raise IndexError("Index Error: arguments exceed number of stacks")
+        suit_values = {"C": 0, "D": 1, "S": 0, "H": 1}
 
         if stack_to_move == move_to_stack:
             return False
 
-        print(
-            f"{self.stacks[stack_to_move][0].value} -> {self.stacks[move_to_stack][-1].value}"
-        )
-
-        for i, card in enumerate(self.stacks[stack_to_move]):
-            if not self.stacks[stack_to_move]:
+        if stack_to_move == "P":
+            if not self.draw_cards:
                 return False
 
-            if card.face_down:
-                continue
-
-            _ = input(
-                f"Checking {card} [{card.value}] -> {self.stacks[move_to_stack][-1]} [{self.stacks[move_to_stack][-1].value}]"
-            )
-
-            if (
-                (not self.stacks[move_to_stack] and card.face == "K")
-                or (card.value == self.stacks[move_to_stack][-1].value - 1)
-                or (card.value == self.stacks[move_to_stack][-1].value - 3)
-            ):
-                stack = self.stacks[stack_to_move][i:]
-                self.stacks[stack_to_move] = self.stacks[stack_to_move][:i]
-
-                if self.stacks[stack_to_move]:
-                    self.stacks[stack_to_move][-1].face_down = False
-
-                self.stacks[move_to_stack] += stack
+            if _verify_play(self.draw_cards[-1], move_to_stack):
+                self.stacks2[move_to_stack].append(self.draw_cards.pop())
                 return True
 
+        elif stack_to_move in "ABCD":
+            if self.stacks2.get(stack_to_move) is None:
+                return False
+            card = self.stacks2[stack_to_move][-1]
+            if _verify_play(card, move_to_stack):
+                self.stacks2[move_to_stack].append(self.stacks2[stack_to_move].pop())
+                return True
+            return False
+
+        elif stack_to_move in "1234567":
+            if self.stacks2.get(stack_to_move) is None:
+                return False
+
+            if move_to_stack in "ABCD":
+                card = self.stacks2[stack_to_move][-1]
+                if _verify_play(card, move_to_stack):
+                    self.stacks2[move_to_stack].append(
+                        self.stacks2[stack_to_move].pop()
+                    )
+                    if self.stacks2[stack_to_move]:
+                        self.stacks2[stack_to_move][-1].face_down = False
+                    return True
+                return False
+
+            for i, card in enumerate(self.stacks2.get(stack_to_move, [])):
+
+                if card.face_down:
+                    continue
+
+                if _verify_play(card, move_to_stack):
+                    stack = self.stacks2[stack_to_move][i:]
+                    self.stacks2[stack_to_move] = self.stacks2[stack_to_move][:i]
+
+                    if self.stacks2[stack_to_move]:
+                        self.stacks2[stack_to_move][-1].face_down = False
+
+                    self.stacks2[move_to_stack] += stack
+                    return True
         return False
 
     def pull_cards(self) -> None:
         if len(self.deck) >= 3:
-            self.draw_cards += self.deck.cards[-3:]
-            self.deck = self.deck.cards[:-3]
+            self.draw_cards += self.deck.cards[:3]
+            self.deck.cards = self.deck.cards[3:]
 
-        if 0 < len(self.deck) < 3:
+        elif 0 < len(self.deck) < 3:
             self.draw_cards += self.deck.cards[:]
             self.deck.cards = []
 
-        if not self.deck and self.draw_cards:
+        elif not self.deck and self.draw_cards:
             self.deck.cards = self.draw_cards[:]
             self.draw_cards = []
             self.pull_cards()
 
     def start_game(self) -> None:
-        # playing = True
         memo = "Lets Play!"
 
         # Game Loop
@@ -168,25 +206,25 @@ class GridGame:
             clear()
             print(self)
             print(memo)
-            menu_select = input("[m] to move -- [d] to draw cards -- [q] to quit: ")
+            menu_select = input(
+                "Enter move -- [d] to draw cards -- [n] new game -- [q] to quit: "
+            )
+            menu_select = menu_select.lower()
             if menu_select == "q":
                 break
-            elif menu_select == "m":
-                col_to_move = input("Pick a column to move, or q to quit: ")
-                move_to_col = input("Pick a column to move it to: ")
-                try:
-                    int(move_to_col)
-                except ValueError:
-                    memo = "Invalid Entry, Try Again"
-                    continue
+            elif menu_select == "n":
+                main()
+            elif menu_select == "d":
+                memo = "Cards drawn..."
+                self.pull_cards()
+            elif len(menu_select) == 2:
+                col_to_move = menu_select[0]
+                move_to_col = menu_select[1]
 
-                if self.move_stack(int(col_to_move), int(move_to_col)):
+                if self.move_stack(col_to_move, move_to_col):
                     memo = "Nice Play!"
                 else:
                     memo = "Invalid Move, Try Again!"
-
-            elif menu_select == "d":
-                self.pull_cards()
 
 
 def main():

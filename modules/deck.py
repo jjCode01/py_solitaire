@@ -41,7 +41,7 @@ class Deck:
         self.cards += other_deck.cards
 
     def __bool__(self) -> bool:
-        return self.cards
+        return len(self.cards) > 0
 
     def deal_card(self, face_down: bool = False) -> object:
         if len(self.cards) > 0:
