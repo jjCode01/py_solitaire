@@ -5,8 +5,28 @@ from modules.deck import Deck
 from modules.card import Card
 
 
+def _card_str(card: Card) -> str:
+    if card.face_down:
+        return "\033[48;5;20m --- \033[m"
+
+    SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
+    if card.face == "10":
+        return f"{_card_color(card)} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
+    return f"{_card_color(card)}  {card.face}{SUIT_IMAGES[card.suit]} \033[m"
+
+
+def _card_color(card: Card) -> str:
+    if card.face_down:
+        return "\033[48;5;20m"
+
+    if card.suit in ("H", "D"):
+        return "\033[48;5;15m\033[38;5;124m"
+
+    return "\033[48;5;15m\033[38;5;236m"
+
+
 class GridGame:
-    def __init__(self) -> None:
+    def __init__(self, yukon=False) -> None:
         self.deck = Deck(get_playing_cards(), shuffled=True)
         self._set_card_values()
 
@@ -19,25 +39,12 @@ class GridGame:
             for j in range(i + 1, 8):
                 self.stacks2[str(j)].append(self.deck.deal_card(face_down=True))
 
+        if yukon:
+            for _ in range(4):
+                for i in range(2, 8):
+                    self.stacks2[str(i)].append(self.deck.deal_card())
+
     def __str__(self) -> str:
-        def _card_color(card: Card) -> str:
-            if card.face_down:
-                return "\033[48;5;20m"
-
-            if card.suit in ("H", "D"):
-                return "\033[48;5;15m\033[38;5;124m"
-
-            return "\033[48;5;15m\033[38;5;236m"
-
-        def _card_str(card: Card) -> str:
-            if card.face_down:
-                return "\033[48;5;20m --- \033[m"
-
-            SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
-            if card.face == "10":
-                return f"{_card_color(card)}{card.face}{SUIT_IMAGES[card.suit]} \033[m"
-            return f"{_card_color(card)} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
-
         s = ""
 
         # Aces Row
@@ -47,12 +54,12 @@ class GridGame:
         for col in "ABCD":
             if self.stacks2[col]:
                 card = self.stacks2.get(col)[-1]
-                s += f'|{_card_color(card)} {" " * (3 - len(str(card)))}{card} \033[m'
+                s += f"|{_card_str(card)}"
             else:
                 s += "|     "
         s += "|\n\n"
 
-        tallest = 20
+        tallest = max((len(x) for x in self.stacks2.values()))
         for col in "1234567":
             s += f"|  {col}  "
         s += "|\n"
@@ -61,7 +68,7 @@ class GridGame:
             for col in "1234567":
                 if self.stacks2.get(col) and row < len(self.stacks2.get(col)):
                     card: Card = self.stacks2.get(col)[row]
-                    s += f'|{_card_color(card)} {" " * (3 - len(str(card)))}{card} \033[m'
+                    s += f"|{_card_str(card)}"
                 else:
                     s += "|     "
 
@@ -73,7 +80,7 @@ class GridGame:
         s += (
             "|     |\n"
             if not self.draw_cards
-            else f'|{_card_color(self.draw_cards[-1])} {" " * (3 - len(str(self.draw_cards[-1])))}{self.draw_cards[-1]} \033[m|\n'
+            else f"|{_card_str(self.draw_cards[-1])}|\n"
         )
 
         return s
@@ -168,20 +175,55 @@ class GridGame:
                     return True
                 return False
 
-            for i, card in enumerate(self.stacks2.get(stack_to_move, [])):
+            possible_moves = [
+                (i, card)
+                for i, card in enumerate(self.stacks2.get(stack_to_move, []))
+                if not card.face_down and _verify_play(card, move_to_stack)
+            ]
 
-                if card.face_down:
-                    continue
+            if not possible_moves:
+                return False
 
-                if _verify_play(card, move_to_stack):
-                    stack = self.stacks2[stack_to_move][i:]
-                    self.stacks2[stack_to_move] = self.stacks2[stack_to_move][:i]
+            if len(possible_moves) == 1:
+                move_card = possible_moves[0][0]
 
-                    if self.stacks2[stack_to_move]:
-                        self.stacks2[stack_to_move][-1].face_down = False
+            elif len(possible_moves) > 1:
+                s = "\n".join(
+                    [
+                        f"{i}: {_card_str(card[1])}"
+                        for i, card in enumerate(possible_moves)
+                    ]
+                )
+                while True:
+                    move_choice = input(s + "\nEnter Choice: ")
+                    if 0 <= int(move_choice) < len(possible_moves):
+                        break
 
-                    self.stacks2[move_to_stack] += stack
-                    return True
+                move_card = possible_moves[int(move_choice)][0]
+
+            stack = self.stacks2[stack_to_move][move_card:]
+            self.stacks2[stack_to_move] = self.stacks2[stack_to_move][:move_card]
+
+            if self.stacks2[stack_to_move]:
+                self.stacks2[stack_to_move][-1].face_down = False
+
+            self.stacks2[move_to_stack] += stack
+            return True
+
+            # for i, card in enumerate(self.stacks2.get(stack_to_move, [])):
+
+            #     if card.face_down:
+            #         continue
+
+            #     if _verify_play(card, move_to_stack):
+            #         stack = self.stacks2[stack_to_move][i:]
+            #         self.stacks2[stack_to_move] = self.stacks2[stack_to_move][:i]
+
+            #         if self.stacks2[stack_to_move]:
+            #             self.stacks2[stack_to_move][-1].face_down = False
+
+            #         self.stacks2[move_to_stack] += stack
+            #         return True
         return False
 
     def pull_cards(self) -> None:
@@ -228,7 +270,11 @@ class GridGame:
 
 
 def main():
-    game = GridGame()
+    game_select = input("1: Regular Solitair\n2: Yukon Solitair\n:")
+    if not game_select in ("1", "2"):
+        main()
+
+    game = GridGame(game_select == "2")
     game.start_game()
 
 
