@@ -195,9 +195,9 @@ class GridGame:
                     ]
                 )
                 while True:
-                    move_choice = input(s + "\nEnter Choice: ")
-                    if 0 <= int(move_choice) < len(possible_moves):
-                        break
+                    if move_choice := input(s + "\nEnter Choice: ") in '0123':
+                        if 0 <= int(move_choice) < len(possible_moves):
+                            break
 
                 move_card = possible_moves[int(move_choice)][0]
 
