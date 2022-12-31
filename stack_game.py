@@ -59,7 +59,7 @@ class GridGame:
                 s += "|     "
         s += "|\n\n"
 
-        tallest = max((len(x) for x in self.stacks2.values()))
+        tallest = max((len(y) for x, y in self.stacks2.items() if x in "1234567"))
         for col in "1234567":
             s += f"|  {col}  "
         s += "|\n"
@@ -195,9 +195,11 @@ class GridGame:
                     ]
                 )
                 while True:
-                    if move_choice := input(s + "\nEnter Choice: ") in '0123':
-                        if 0 <= int(move_choice) < len(possible_moves):
-                            break
+                    move_choice = input(s + "\nEnter Choice: ")
+                    if move_choice.isnumeric() and 0 <= int(move_choice) < len(
+                        possible_moves
+                    ):
+                        break
 
                 move_card = possible_moves[int(move_choice)][0]
 
@@ -265,6 +267,7 @@ class GridGame:
 
                 if self.move_stack(col_to_move, move_to_col):
                     memo = "Nice Play!"
+
                 else:
                     memo = "Invalid Move, Try Again!"
 

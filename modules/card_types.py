@@ -13,7 +13,7 @@ def get_playing_cards(num_of_decks: int = 1) -> list[Card]:
         Card(
             face=f,
             suit=s,
-            value=0,
+            # _value=0,
             front_img=Path.joinpath(IMG_PATH, f"{f}{s}.png"),
             back_img=Path.joinpath(IMG_PATH, "blue_back.png"),
         )

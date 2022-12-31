@@ -1,16 +1,25 @@
 from dataclasses import dataclass
 
 
-@dataclass
+# @dataclass
 class Card:
     """Card object for card games"""
 
-    face: str
-    suit: str
-    face_down: bool = False
-    value: int = 0
-    front_img: str = ""
-    back_img: str = ""
+    def __init__(
+        self,
+        face: str,
+        suit: str,
+        face_down: bool = False,
+        front_img: str = "",
+        back_img: str = "",
+        value: int = 0,
+    ) -> None:
+        self.face: str = face
+        self.suit: str = suit
+        self.face_down: bool = face_down
+        self.front_img: str = front_img
+        self.back_img: str = back_img
+        self._value: int = value
 
     def __str__(self) -> str:
         if self.face_down:
