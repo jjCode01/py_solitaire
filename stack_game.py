@@ -211,21 +211,6 @@ class GridGame:
 
             self.stacks2[move_to_stack] += stack
             return True
-
-            # for i, card in enumerate(self.stacks2.get(stack_to_move, [])):
-
-            #     if card.face_down:
-            #         continue
-
-            #     if _verify_play(card, move_to_stack):
-            #         stack = self.stacks2[stack_to_move][i:]
-            #         self.stacks2[stack_to_move] = self.stacks2[stack_to_move][:i]
-
-            #         if self.stacks2[stack_to_move]:
-            #             self.stacks2[stack_to_move][-1].face_down = False
-
-            #         self.stacks2[move_to_stack] += stack
-            #         return True
         return False
 
     def pull_cards(self) -> None:
