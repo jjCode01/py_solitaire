@@ -244,6 +244,7 @@ class GridGame:
 
     def start_game(self) -> None:
         memo = "Lets Play!"
+        continue_play = False
 
         # Game Loop
         while True:
@@ -257,7 +258,8 @@ class GridGame:
             if menu_select == "q":
                 break
             elif menu_select == "n":
-                main()
+                continue_play = True
+                break
             elif menu_select == "d":
                 memo = "Cards drawn..."
                 self.pull_cards()
@@ -270,6 +272,9 @@ class GridGame:
 
                 else:
                     memo = "Invalid Move, Try Again!"
+
+        if continue_play:
+            main()
 
 
 def main():
