@@ -27,8 +27,7 @@ def _card_color(card: Card) -> str:
 
 class GridGame:
     def __init__(self, yukon=False) -> None:
-        self.deck = Deck(get_playing_cards(), shuffled=True)
-        self._set_card_values()
+        self.deck = Deck(get_playing_cards(card_values=list(range(13))), shuffled=True)
 
         self.stacks2 = {i: [] for i in "1234567ABCD"}
         self.draw_cards = []
@@ -84,26 +83,6 @@ class GridGame:
         )
 
         return s
-
-    def _set_card_values(self) -> None:
-        face_values = {
-            "A": 0,
-            "2": 1,
-            "3": 2,
-            "4": 3,
-            "5": 4,
-            "6": 5,
-            "7": 6,
-            "8": 7,
-            "9": 8,
-            "10": 9,
-            "J": 10,
-            "Q": 11,
-            "K": 12,
-        }
-
-        for card in self.deck:
-            card.value = face_values[card.face]
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
         def _verify_play(move_card: Card, to_stack: str) -> bool:

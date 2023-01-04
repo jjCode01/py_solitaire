@@ -19,7 +19,7 @@ class Card:
         self.face_down: bool = face_down
         self.front_img: str = front_img
         self.back_img: str = back_img
-        self._value: int = value
+        self._value: int = int(value)
 
     def __str__(self) -> str:
         if self.face_down:
@@ -32,16 +32,11 @@ class Card:
         self.face_down = not self.face_down
 
     def img(self) -> str:
-        if self.face_down:
-            return self.back_img
-
-        return self.front_img
+        return self.back_img if self.face_down else self.front_img
 
     @property
     def value(self) -> int:
-        if self.face_down:
-            return 0
-        return self._value
+        return 0 if self.face_down else self._value
 
     @value.setter
     def value(self, new_value: int) -> None:

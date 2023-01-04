@@ -6,18 +6,22 @@ CWD = Path.cwd() / "img" / ""
 IMG_PATH = CWD / "img" / "cards"
 
 
-def get_playing_cards(num_of_decks: int = 1) -> list[Card]:
-    faces = ("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
+def get_playing_cards(
+    num_of_decks: int = 1, card_values: list = [0] * 13
+) -> list[Card]:
+    faces = zip(
+        ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"], card_values
+    )
     suites = ("C", "D", "H", "S")
     return [
         Card(
             face=f,
             suit=s,
-            # _value=0,
+            value=v,
             front_img=Path.joinpath(IMG_PATH, f"{f}{s}.png"),
             back_img=Path.joinpath(IMG_PATH, "blue_back.png"),
         )
-        for f in faces
+        for f, v in faces
         for s in suites
         for _ in range(num_of_decks)
     ]
