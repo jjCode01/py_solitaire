@@ -25,10 +25,18 @@ def _card_color(card: Card) -> str:
     return "\033[48;5;15m\033[38;5;236m"
 
 
-class GridGame:
-    def __init__(self, yukon=False) -> None:
-        self.deck = Deck(get_playing_cards(card_values=list(range(13))), shuffled=True)
+_play_options = {
+    "classic": ["[d] to draw cards", "[n] new game", "[q] to quit"],
+    "yukon": ["[n] new game", "[q] to quit"],
+}
 
+
+class Solitaire:
+    def __init__(self, game_type: str = "classic") -> None:
+        if game_type.lower() not in ("classic", "yukon"):
+            raise ValueError("Invalid Game Type")
+        self.type = game_type.lower()
+        self.deck = Deck(get_playing_cards(card_values=list(range(13))), shuffled=True)
         self.stacks = {i: [] for i in "1234567ABCD"}
         self.draw_cards = []
 
@@ -38,51 +46,53 @@ class GridGame:
             for j in range(i + 1, 8):
                 self.stacks[str(j)].append(self.deck.deal_card(face_down=True))
 
-        if yukon:
+        if self.type == "yukon":
             for _ in range(4):
                 for i in range(2, 8):
                     self.stacks[str(i)].append(self.deck.deal_card())
 
     def __str__(self) -> str:
-        s = ""
+        board = ""
 
         # Aces Row
         for col in "ABCD":
-            s += f"|  {col}  "
-        s += f"|\n{'+-----' * 4}+\n"
+            board += f"|  {col}  "
+        board += f"|\n{'+-----' * 4}+\n"
         for col in "ABCD":
             if self.stacks[col]:
                 card = self.stacks.get(col)[-1]
-                s += f"|{_card_str(card)}"
+                board += f"|{_card_str(card)}"
             else:
-                s += "|     "
-        s += "|\n\n"
+                board += "|     "
+        board += "|\n\n"
 
         tallest = max((len(y) for x, y in self.stacks.items() if x in "1234567"))
+        tallest = max((13, tallest))
         for col in "1234567":
-            s += f"|  {col}  "
-        s += "|\n"
-        s += f"{'+-----' * 7}+\n"
+            board += f"|  {col}  "
+        board += "|\n"
+        board += f"{'+-----' * 7}+\n"
         for row in range(tallest):
             for col in "1234567":
                 if self.stacks.get(col) and row < len(self.stacks.get(col)):
                     card: Card = self.stacks.get(col)[row]
-                    s += f"|{_card_str(card)}"
+                    board += f"|{_card_str(card)}"
                 else:
-                    s += "|     "
+                    board += "|     "
 
-            s += "|\n"
+            board += "|\n"
 
-        s += f"\n|  P  |  Deck: {len(self.deck)}\n"
-        s += "+-----+\n"
+        if self.type == "classic":
+            board += f"\n|  P  |  Deck: {len(self.deck)}\n"
+            board += "+-----+\n"
 
-        s += (
-            "|     |\n"
-            if not self.draw_cards
-            else f"|{_card_str(self.draw_cards[-1])}|\n"
-        )
+            board += (
+                "|     |\n"
+                if not self.draw_cards
+                else f"|{_card_str(self.draw_cards[-1])}|\n"
+            )
 
-        return s
+        return board
 
     def check_win(self) -> bool:
         if self.deck or self.draw_cards:
@@ -221,16 +231,15 @@ class GridGame:
             clear()
             print(self)
             print(memo)
-            menu_select = input(
-                "Enter move -- [d] to draw cards -- [n] new game -- [q] to quit: "
-            )
+            print("Options:", " | ".join(_play_options[self.type]))
+            menu_select = input("Enter move: ")
             menu_select = menu_select.lower()
             if menu_select == "q":
                 break
             elif menu_select == "n":
                 continue_play = True
                 break
-            elif menu_select == "d":
+            elif menu_select == "d" and self.type == "classic":
                 memo = "Cards drawn..."
                 self.pull_cards()
             elif len(menu_select) == 2:
@@ -257,11 +266,12 @@ class GridGame:
 
 
 def main():
-    game_select = input("1: Regular Solitair\n2: Yukon Solitair\n:")
+    game_types = {"1": "classic", "2": "yukon"}
+    game_select = input("1: Classic Solitair\n2: Yukon Solitair\n:")
     if not game_select in ("1", "2"):
         main()
 
-    game = GridGame(game_select == "2")
+    game = Solitaire(game_types[game_select])
     game.start_game()
 
 
