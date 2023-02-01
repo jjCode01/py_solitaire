@@ -1,4 +1,5 @@
 from os import system, name
+from copy import deepcopy
 
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
@@ -26,8 +27,8 @@ def _card_color(card: Card) -> str:
 
 
 _play_options = {
-    "classic": ["[d] to draw cards", "[n] new game", "[q] to quit"],
-    "yukon": ["[n] new game", "[q] to quit"],
+    "classic": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
+    "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
 
@@ -50,6 +51,8 @@ class Solitaire:
             for _ in range(4):
                 for i in range(2, 8):
                     self.stacks[str(i)].append(self.deck.deal_card())
+
+        self.prev_state = {}
 
     def __str__(self) -> str:
         board = ""
@@ -94,6 +97,13 @@ class Solitaire:
 
         return board
 
+    def set_prev_state(self) -> None:
+        self.prev_state = {
+            "stacks": deepcopy(self.stacks),
+            "draw_cards": self.draw_cards[:],
+            "deck_cards": self.deck.cards[:],
+        }
+
     def check_win(self) -> bool:
         if self.deck or self.draw_cards:
             return False
@@ -129,6 +139,7 @@ class Solitaire:
                     and move_card.value == self.stacks[to_stack][-1].value + 1
                 )
             ):
+                self.set_prev_state()
                 return True
             return False
 
@@ -198,6 +209,7 @@ class Solitaire:
 
                 move_card = possible_moves[int(move_choice)][0]
 
+            self.set_prev_state()
             stack = self.stacks[stack_to_move][move_card:]
             self.stacks[stack_to_move] = self.stacks[stack_to_move][:move_card]
 
@@ -239,8 +251,14 @@ class Solitaire:
             elif menu_select == "n":
                 continue_play = True
                 break
+            elif menu_select == "u" and self.prev_state:
+                self.stacks = self.prev_state["stacks"].copy()
+                self.draw_cards = self.prev_state["draw_cards"][:]
+                self.deck.cards = self.prev_state["deck_cards"][:]
+                memo = "Undo last move..."
             elif menu_select == "d" and self.type == "classic":
                 memo = "Cards drawn..."
+                self.set_prev_state()
                 self.pull_cards()
             elif len(menu_select) == 2:
                 col_to_move = menu_select[0]
