@@ -21,6 +21,16 @@ class Card:
         self.back_img: str = back_img
         self._value: int = int(value)
 
+    def __eq__(self, __o: "Card") -> bool:
+        return (
+            self.face == __o.face
+            and self.suit == __o.suit
+            and self.face_down == __o.face_down
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.face, self.suit, self.face_down))
+
     def __str__(self) -> str:
         if self.face_down:
             return "---"

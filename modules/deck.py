@@ -43,6 +43,9 @@ class Deck:
     def __bool__(self) -> bool:
         return len(self.cards) > 0
 
+    def __hash__(self) -> int:
+        return hash(self.cards)
+
     def deal_card(self, face_down: bool = False) -> object:
         if len(self.cards) > 0:
             card = self.cards.pop()
