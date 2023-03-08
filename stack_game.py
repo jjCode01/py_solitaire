@@ -36,9 +36,11 @@ class Solitaire:
     def __init__(self, game_type: str = "classic") -> None:
         if game_type.lower() not in ("classic", "yukon"):
             raise ValueError("Invalid Game Type")
-        self.type = game_type.lower()
-        self.deck = Deck(get_playing_cards(card_values=list(range(13))), shuffled=True)
-        self.stacks = {i: [] for i in "1234567ABCD"}
+        self.type: str = game_type.lower()
+        self.deck: Deck = Deck(
+            get_playing_cards(card_values=list(range(13))), shuffled=True
+        )
+        self.stacks: dict[str, list[Card]] = {i: [] for i in "1234567ABCD"}
         self.draw_cards = []
 
         for i in range(1, 8):
@@ -55,19 +57,7 @@ class Solitaire:
         self.prev_state = {}
 
     def __str__(self) -> str:
-        board = ""
-
-        # Aces Row
-        for col in "ABCD":
-            board += f"|  {col}  "
-        board += f"|\n{'+-----' * 4}+\n"
-        for col in "ABCD":
-            if self.stacks[col]:
-                card = self.stacks.get(col)[-1]
-                board += f"|{_card_str(card)}"
-            else:
-                board += "|     "
-        board += "|\n\n"
+        board = self._draw_aces_row()
 
         tallest = max((len(y) for x, y in self.stacks.items() if x in "1234567"))
         tallest = max((13, tallest))
@@ -77,8 +67,8 @@ class Solitaire:
         board += f"{'+-----' * 7}+\n"
         for row in range(tallest):
             for col in "1234567":
-                if self.stacks.get(col) and row < len(self.stacks.get(col)):
-                    card: Card = self.stacks.get(col)[row]
+                if self.stacks.get(col) and row < len(self.stacks[col]):
+                    card: Card = self.stacks[col][row]
                     board += f"|{_card_str(card)}"
                 else:
                     board += "|     "
@@ -95,6 +85,22 @@ class Solitaire:
                 else f"|{_card_str(self.draw_cards[-1])}|\n"
             )
 
+        return board
+
+    def _draw_aces_row(self) -> str:
+        board = ""
+
+        # Aces Row
+        for col in "ABCD":
+            board += f"|  {col}  "
+        board += f"|\n{'+-----' * 4}+\n"
+        for col in "ABCD":
+            if self.stacks[col]:
+                card = self.stacks[col][-1]
+                board += f"|{_card_str(card)}"
+            else:
+                board += "|     "
+        board += "|\n\n"
         return board
 
     def set_prev_state(self) -> None:
@@ -187,9 +193,6 @@ class Solitaire:
                 if not card.face_down and _verify_play(card, move_to_stack)
             ]
 
-            if not possible_moves:
-                return False
-
             if len(possible_moves) == 1:
                 move_card = possible_moves[0][0]
 
@@ -208,6 +211,9 @@ class Solitaire:
                         break
 
                 move_card = possible_moves[int(move_choice)][0]
+
+            else:
+                return False
 
             self.set_prev_state()
             stack = self.stacks[stack_to_move][move_card:]

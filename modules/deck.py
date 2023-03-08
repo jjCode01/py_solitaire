@@ -1,4 +1,5 @@
 import random
+from typing import Iterable
 from modules.card import Card
 
 
@@ -28,7 +29,7 @@ class Deck:
 
         return self.cards[key]
 
-    def __iter__(self) -> Card:
+    def __iter__(self) -> Iterable[Card]:
         for card in self.cards:
             yield card
 
@@ -46,11 +47,12 @@ class Deck:
     def __hash__(self) -> int:
         return hash(self.cards)
 
-    def deal_card(self, face_down: bool = False) -> object:
+    def deal_card(self, face_down: bool = False) -> Card:
         if len(self.cards) > 0:
             card = self.cards.pop()
             card.face_down = face_down
             return card
+        raise IndexError("IndexError: Deck is out of cards")
 
     def shuffle(self) -> None:
         random.shuffle(self.cards)
