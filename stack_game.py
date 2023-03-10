@@ -119,13 +119,18 @@ class Solitaire:
         return True
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
+        def _king_to_empty(move_card: Card, to_stack: str) -> bool:
+            if not move_card.face == "K":
+                return False
+            if not to_stack in "1234567":
+                return False
+            if self.stacks[to_stack]:
+                return False
+            return True
+
         def _verify_play(move_card: Card, to_stack: str) -> bool:
             if (
-                (
-                    to_stack in "1234567"
-                    and not self.stacks[to_stack]
-                    and move_card.face == "K"
-                )
+                _king_to_empty(move_card, to_stack)
                 or (
                     to_stack in "1234567"
                     and self.stacks[to_stack]
