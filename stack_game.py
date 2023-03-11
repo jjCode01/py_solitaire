@@ -31,6 +31,8 @@ _play_options = {
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
+suit_values = {"C": 0, "D": 1, "S": 0, "H": 1}
+
 
 class Solitaire:
     def __init__(self, game_type: str = "classic") -> None:
@@ -114,6 +116,28 @@ class Solitaire:
         if self.deck or self.draw_cards:
             return False
         for i in "1234567":
+            could_win = True
+            if self.stacks[i]:
+                for n, card in enumerate(self.stacks[i]):
+                    if n == 0:
+                        if not card.face == "K":
+                            could_win = False
+                            break
+                    else:
+                        if (
+                            card.value != self.stacks[i][n - 1].value - 1
+                            or suit_values[card.suit]
+                            == suit_values[self.stacks[i][n - 1].suit]
+                        ):
+                            could_win = False
+                            break
+            if not could_win:
+                break
+        else:
+            # TODO: MOVE CARDS
+            return True
+
+        for i in "1234567":
             if self.stacks[i]:
                 return False
         return True
@@ -156,8 +180,6 @@ class Solitaire:
 
         stack_to_move = stack_to_move.upper()
         move_to_stack = move_to_stack.upper()
-
-        suit_values = {"C": 0, "D": 1, "S": 0, "H": 1}
 
         if stack_to_move == move_to_stack:
             return False
