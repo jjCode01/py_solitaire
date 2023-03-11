@@ -1,7 +1,3 @@
-from dataclasses import dataclass
-
-
-# @dataclass
 class Card:
     """Card object for card games"""
 
@@ -43,6 +39,16 @@ class Card:
 
     def img(self) -> str:
         return self.back_img if self.face_down else self.front_img
+
+    @property
+    def color(self) -> str | None:
+        if self.face_down:
+            return
+        if self.suit.lower() in ("h", "d", "hearts", "diamonds"):
+            return "Red"
+        if self.suit.lower() in ("s", "c", "spades", "clubs"):
+            return "Black"
+        return
 
     @property
     def value(self) -> int:

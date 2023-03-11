@@ -31,7 +31,8 @@ _play_options = {
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
-suit_values = {"C": 0, "D": 1, "S": 0, "H": 1}
+ACES = ["A", "B", "C", "D"]
+KINGS = ["1", "2", "3", "4", "5", "6", "7"]
 
 
 class Solitaire:
@@ -61,14 +62,14 @@ class Solitaire:
     def __str__(self) -> str:
         board = self._draw_aces_row()
 
-        tallest = max((len(y) for x, y in self.stacks.items() if x in "1234567"))
+        tallest = max((len(y) for x, y in self.stacks.items() if x in KINGS))
         tallest = max((13, tallest))
-        for col in "1234567":
+        for col in KINGS:
             board += f"|  {col}  "
         board += "|\n"
         board += f"{'+-----' * 7}+\n"
         for row in range(tallest):
-            for col in "1234567":
+            for col in KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
                     card: Card = self.stacks[col][row]
                     board += f"|{_card_str(card)}"
@@ -93,10 +94,10 @@ class Solitaire:
         board = ""
 
         # Aces Row
-        for col in "ABCD":
+        for col in ACES:
             board += f"|  {col}  "
         board += f"|\n{'+-----' * 4}+\n"
-        for col in "ABCD":
+        for col in ACES:
             if self.stacks[col]:
                 card = self.stacks[col][-1]
                 board += f"|{_card_str(card)}"
@@ -115,20 +116,17 @@ class Solitaire:
     def check_win(self) -> bool:
         if self.deck or self.draw_cards:
             return False
-        for i in "1234567":
+        for i in KINGS:
             could_win = True
-            if self.stacks[i]:
+            if stack := self.stacks[i]:
+                if stack[0].face_down:
+                    break
+                if not stack[0].face == "K":
+                    break
                 for n, card in enumerate(self.stacks[i]):
-                    if n == 0:
-                        if not card.face == "K":
-                            could_win = False
-                            break
-                    else:
-                        if (
-                            card.value != self.stacks[i][n - 1].value - 1
-                            or suit_values[card.suit]
-                            == suit_values[self.stacks[i][n - 1].suit]
-                        ):
+                    if n > 0:
+                        prev_card = self.stacks[i][n - 1]
+                        if not is_valid_position(prev_card, card):
                             could_win = False
                             break
             if not could_win:
@@ -137,7 +135,7 @@ class Solitaire:
             # TODO: MOVE CARDS
             return True
 
-        for i in "1234567":
+        for i in KINGS:
             if self.stacks[i]:
                 return False
         return True
@@ -146,29 +144,30 @@ class Solitaire:
         def _king_to_empty(move_card: Card, to_stack: str) -> bool:
             if not move_card.face == "K":
                 return False
-            if not to_stack in "1234567":
+            if not to_stack in KINGS:
                 return False
             if self.stacks[to_stack]:
                 return False
             return True
 
+        def _stack_to_stack(card: Card, to_stack: str) -> bool:
+            if not to_stack in KINGS:
+                return False
+            if not self.stacks[to_stack]:
+                return False
+            return is_valid_position(self.stacks[to_stack][-1], card)
+
         def _verify_play(move_card: Card, to_stack: str) -> bool:
             if (
                 _king_to_empty(move_card, to_stack)
+                or _stack_to_stack(move_card, to_stack)
                 or (
-                    to_stack in "1234567"
-                    and self.stacks[to_stack]
-                    and move_card.value == self.stacks[to_stack][-1].value - 1
-                    and suit_values[move_card.suit]
-                    != suit_values[self.stacks[to_stack][-1].suit]
-                )
-                or (
-                    to_stack in "ABCD"
+                    to_stack in ACES
                     and not self.stacks[to_stack]
                     and move_card.face == "A"
                 )
                 or (
-                    to_stack in "ABCD"
+                    to_stack in ACES
                     and self.stacks[to_stack]
                     and move_card.suit == self.stacks[to_stack][-1].suit
                     and move_card.value == self.stacks[to_stack][-1].value + 1
@@ -192,7 +191,7 @@ class Solitaire:
                 self.stacks[move_to_stack].append(self.draw_cards.pop())
                 return True
 
-        elif stack_to_move in "ABCD":
+        elif stack_to_move in ACES:
             if self.stacks.get(stack_to_move) is None:
                 return False
             card = self.stacks[stack_to_move][-1]
@@ -201,11 +200,11 @@ class Solitaire:
                 return True
             return False
 
-        elif stack_to_move in "1234567":
+        elif stack_to_move in KINGS:
             if self.stacks.get(stack_to_move) is None:
                 return False
 
-            if move_to_stack in "ABCD":
+            if move_to_stack in ACES:
                 card = self.stacks[stack_to_move][-1]
                 if _verify_play(card, move_to_stack):
                     self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
@@ -314,6 +313,14 @@ class Solitaire:
 
         if continue_play:
             main()
+
+
+def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
+    if upper_card.color == lower_card.color:
+        return False
+    if upper_card.value != lower_card.value + 1:
+        return False
+    return True
 
 
 def main():
