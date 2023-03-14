@@ -31,7 +31,7 @@ _play_options = {
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
-ACES = ["A", "B", "C", "D"]
+ACES = ["S", "C", "D", "H"]
 KINGS = ["1", "2", "3", "4", "5", "6", "7"]
 
 
@@ -43,7 +43,7 @@ class Solitaire:
         self.deck: Deck = Deck(
             get_playing_cards(card_values=list(range(13))), shuffled=True
         )
-        self.stacks: dict[str, list[Card]] = {i: [] for i in "1234567ABCD"}
+        self.stacks: dict[str, list[Card]] = {i: [] for i in "1234567SCDH"}
         self.draw_cards = []
 
         for i in range(1, 8):
@@ -269,6 +269,7 @@ class Solitaire:
     def start_game(self) -> None:
         memo = "Lets Play!"
         continue_play = False
+        player_wins = False
 
         # Game Loop
         while True:
@@ -292,24 +293,53 @@ class Solitaire:
                 memo = "Cards drawn..."
                 self.set_prev_state()
                 self.pull_cards()
+            elif len(menu_select) == 1 and menu_select in KINGS:
+                if self.stacks[menu_select]:
+                    card = self.stacks[menu_select][-1]
+                    if self.move_stack(menu_select, card.suit):
+                        if self.check_win():
+                            player_wins = True
+                            # clear()
+                            # print(self)
+                            # print("***** YOU WIN ******")
+                            # play_again = input("Plag again? [y/n] ")
+                            # if play_again.lower() == "y":
+                            #     continue_play = True
+                            # break
+                        else:
+                            memo = "Nice Play!"
+
+                    else:
+                        memo = "Invalid Move, Try Again!"
+
             elif len(menu_select) == 2:
                 col_to_move = menu_select[0]
                 move_to_col = menu_select[1]
 
                 if self.move_stack(col_to_move, move_to_col):
                     if self.check_win():
-                        clear()
-                        print(self)
-                        print("***** YOU WIN ******")
-                        play_again = input("Plag again? [y/n] ")
-                        if play_again.lower() == "y":
-                            continue_play = True
-                        break
+                        player_wins = True
+                        # clear()
+                        # print(self)
+                        # print("***** YOU WIN ******")
+                        # play_again = input("Plag again? [y/n] ")
+                        # if play_again.lower() == "y":
+                        #     continue_play = True
+                        # break
                     else:
                         memo = "Nice Play!"
 
                 else:
                     memo = "Invalid Move, Try Again!"
+
+            if player_wins:
+                clear()
+                print(self)
+                print("***** YOU WIN ******")
+                play_again = input("Plag again? [y/n] ")
+                if play_again.lower() == "y":
+                    continue_play = True
+                break
 
         if continue_play:
             main()
