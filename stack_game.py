@@ -335,9 +335,7 @@ class Solitaire:
             main()
 
     def _finish_game(self):
-        valid_plays = True
         while True:
-            valid_plays = False
             for stack in KINGS:
                 if self.stacks[stack]:
                     break
@@ -345,18 +343,16 @@ class Solitaire:
                 break
 
             for num, stack in self.stacks.items():
-                if num in "1234567" and stack:
+                if num in KINGS and stack:
                     while True:
                         if not stack:
                             break
                         card = stack[-1]
                         if not self.move_stack(num, card.suit):
                             break
-                        sleep(0.03)
+                        sleep(0.4)
                         clear()
                         print(self)
-                        # else:
-                        # valid_plays = True
 
 
 def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
@@ -369,7 +365,7 @@ def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
 
 def main():
     game_types = {"1": "classic", "2": "yukon"}
-    game_select = input("1: Classic Solitair\n2: Yukon Solitair\n:")
+    game_select = input("\n1: Classic Solitair\n2: Yukon Solitair\n:")
     if not game_select in ("1", "2"):
         main()
 
