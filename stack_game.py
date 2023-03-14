@@ -1,5 +1,6 @@
 from os import system, name
 from copy import deepcopy
+from time import sleep
 
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
@@ -133,11 +134,13 @@ class Solitaire:
                 break
         else:
             # TODO: MOVE CARDS
+            self._finish_game()
             return True
 
         for i in KINGS:
             if self.stacks[i]:
                 return False
+        self._finish_game()
         return True
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
@@ -299,13 +302,6 @@ class Solitaire:
                     if self.move_stack(menu_select, card.suit):
                         if self.check_win():
                             player_wins = True
-                            # clear()
-                            # print(self)
-                            # print("***** YOU WIN ******")
-                            # play_again = input("Plag again? [y/n] ")
-                            # if play_again.lower() == "y":
-                            #     continue_play = True
-                            # break
                         else:
                             memo = "Nice Play!"
 
@@ -319,13 +315,6 @@ class Solitaire:
                 if self.move_stack(col_to_move, move_to_col):
                     if self.check_win():
                         player_wins = True
-                        # clear()
-                        # print(self)
-                        # print("***** YOU WIN ******")
-                        # play_again = input("Plag again? [y/n] ")
-                        # if play_again.lower() == "y":
-                        #     continue_play = True
-                        # break
                     else:
                         memo = "Nice Play!"
 
@@ -333,6 +322,7 @@ class Solitaire:
                     memo = "Invalid Move, Try Again!"
 
             if player_wins:
+                self._finish_game()
                 clear()
                 print(self)
                 print("***** YOU WIN ******")
@@ -343,6 +333,30 @@ class Solitaire:
 
         if continue_play:
             main()
+
+    def _finish_game(self):
+        valid_plays = True
+        while True:
+            valid_plays = False
+            for stack in KINGS:
+                if self.stacks[stack]:
+                    break
+            else:
+                break
+
+            for num, stack in self.stacks.items():
+                if num in "1234567" and stack:
+                    while True:
+                        if not stack:
+                            break
+                        card = stack[-1]
+                        if not self.move_stack(num, card.suit):
+                            break
+                        sleep(0.03)
+                        clear()
+                        print(self)
+                        # else:
+                        # valid_plays = True
 
 
 def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
