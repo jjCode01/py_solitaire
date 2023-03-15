@@ -45,7 +45,7 @@ class Deck:
         return len(self.cards) > 0
 
     def __hash__(self) -> int:
-        return hash(self.cards)
+        return hash(tuple(self.cards))
 
     def deal_card(self, face_down: bool = False) -> Card:
         if len(self.cards) > 0:
