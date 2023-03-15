@@ -1,39 +1,34 @@
 from os import system, name
 from copy import deepcopy
+from enum import Enum
 from time import sleep
 
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
 from modules.card import Card
 
+SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
+CARD_COLORS = {
+    "Red": "\033[48;5;15m\033[38;5;124m",
+    "Black": "\033[48;5;15m\033[38;5;236m",
+}
 
-def _card_str(card: Card) -> str:
-    if card.face_down:
-        return "\033[48;5;20m --- \033[m"
-
-    SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
-    if card.face == "10":
-        return f"{_card_color(card)} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
-    return f"{_card_color(card)}  {card.face}{SUIT_IMAGES[card.suit]} \033[m"
-
-
-def _card_color(card: Card) -> str:
-    if card.face_down:
-        return "\033[48;5;20m"
-
-    if card.suit in ("H", "D"):
-        return "\033[48;5;15m\033[38;5;124m"
-
-    return "\033[48;5;15m\033[38;5;236m"
-
-
-_play_options = {
+PLAY_OPTIONS = {
     "classic": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
 ACES = ["S", "C", "D", "H"]
 KINGS = ["1", "2", "3", "4", "5", "6", "7"]
+
+
+def card_img(card: Card) -> str:
+    if card.face_down:
+        return "\033[48;5;20m --- \033[m"
+
+    if card.face == "10":
+        return f"{CARD_COLORS.get(card.color, 'Black')} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
+    return f"{CARD_COLORS.get(card.color, 'Black')}  {card.face}{SUIT_IMAGES[card.suit]} \033[m"
 
 
 class Solitaire:
@@ -44,7 +39,7 @@ class Solitaire:
         self.deck: Deck = Deck(
             get_playing_cards(card_values=list(range(13))), shuffled=True
         )
-        self.stacks: dict[str, list[Card]] = {i: [] for i in "1234567SCDH"}
+        self.stacks: dict[str, list[Card]] = {i: [] for i in KINGS + ACES}
         self.draw_cards = []
 
         for i in range(1, 8):
@@ -73,7 +68,7 @@ class Solitaire:
             for col in KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
                     card: Card = self.stacks[col][row]
-                    board += f"|{_card_str(card)}"
+                    board += f"|{card_img(card)}"
                 else:
                     board += "|     "
 
@@ -86,7 +81,7 @@ class Solitaire:
             board += (
                 "|     |\n"
                 if not self.draw_cards
-                else f"|{_card_str(self.draw_cards[-1])}|\n"
+                else f"|{card_img(self.draw_cards[-1])}|\n"
             )
 
         return board
@@ -101,7 +96,7 @@ class Solitaire:
         for col in ACES:
             if self.stacks[col]:
                 card = self.stacks[col][-1]
-                board += f"|{_card_str(card)}"
+                board += f"|{card_img(card)}"
             else:
                 board += "|     "
         board += "|\n\n"
@@ -228,7 +223,7 @@ class Solitaire:
             elif len(possible_moves) > 1:
                 s = "\n".join(
                     [
-                        f"{i}: {_card_str(card[1])}"
+                        f"{i}: {card_img(card[1])}"
                         for i, card in enumerate(possible_moves)
                     ]
                 )
@@ -279,7 +274,7 @@ class Solitaire:
             clear()
             print(self)
             print(memo)
-            print("Options:", " | ".join(_play_options[self.type]))
+            print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
             menu_select = input("Enter move: ")
             menu_select = menu_select.lower()
             if menu_select == "q":

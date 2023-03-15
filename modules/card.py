@@ -41,14 +41,14 @@ class Card:
         return self.back_img if self.face_down else self.front_img
 
     @property
-    def color(self) -> str | None:
+    def color(self) -> str:
         if self.face_down:
-            return
+            return ""
         if self.suit.lower() in ("h", "d", "hearts", "diamonds"):
             return "Red"
         if self.suit.lower() in ("s", "c", "spades", "clubs"):
             return "Black"
-        return
+        return ""
 
     @property
     def value(self) -> int:
