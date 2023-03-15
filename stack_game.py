@@ -7,12 +7,6 @@ from modules.card_types import get_playing_cards
 from modules.deck import Deck
 from modules.card import Card
 
-SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
-CARD_COLORS = {
-    "Red": "\033[48;5;15m\033[38;5;124m",
-    "Black": "\033[48;5;15m\033[38;5;236m",
-}
-
 PLAY_OPTIONS = {
     "classic": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
@@ -20,15 +14,6 @@ PLAY_OPTIONS = {
 
 ACES = ["S", "C", "D", "H"]
 KINGS = ["1", "2", "3", "4", "5", "6", "7"]
-
-
-def card_img(card: Card) -> str:
-    if card.face_down:
-        return "\033[48;5;20m --- \033[m"
-
-    if card.face == "10":
-        return f"{CARD_COLORS.get(card.color, 'Black')} {card.face}{SUIT_IMAGES[card.suit]} \033[m"
-    return f"{CARD_COLORS.get(card.color, 'Black')}  {card.face}{SUIT_IMAGES[card.suit]} \033[m"
 
 
 class Solitaire:
@@ -68,7 +53,7 @@ class Solitaire:
             for col in KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
                     card: Card = self.stacks[col][row]
-                    board += f"|{card_img(card)}"
+                    board += f"|{card.img}"
                 else:
                     board += "|     "
 
@@ -79,9 +64,7 @@ class Solitaire:
             board += "+-----+\n"
 
             board += (
-                "|     |\n"
-                if not self.draw_cards
-                else f"|{card_img(self.draw_cards[-1])}|\n"
+                "|     |\n" if not self.draw_cards else f"|{self.draw_cards[-1].img}|\n"
             )
 
         return board
@@ -96,7 +79,7 @@ class Solitaire:
         for col in ACES:
             if self.stacks[col]:
                 card = self.stacks[col][-1]
-                board += f"|{card_img(card)}"
+                board += f"|{card.img}"
             else:
                 board += "|     "
         board += "|\n\n"
@@ -114,28 +97,27 @@ class Solitaire:
             return False
         for i in KINGS:
             could_win = True
-            if stack := self.stacks[i]:
-                if stack[0].face_down:
+            stack = self.stacks[i]
+            if not stack:
+                continue
+            if stack[0].face_down:
+                break
+            if not stack[0].face == "K":
+                break
+            for n, card in enumerate(self.stacks[i][1:], 1):
+                prev_card = self.stacks[i][n - 1]
+                if not is_valid_position(prev_card, card):
+                    could_win = False
                     break
-                if not stack[0].face == "K":
-                    break
-                for n, card in enumerate(self.stacks[i]):
-                    if n > 0:
-                        prev_card = self.stacks[i][n - 1]
-                        if not is_valid_position(prev_card, card):
-                            could_win = False
-                            break
             if not could_win:
                 break
         else:
-            # TODO: MOVE CARDS
             self._finish_game()
             return True
 
         for i in KINGS:
             if self.stacks[i]:
                 return False
-        self._finish_game()
         return True
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
@@ -222,10 +204,7 @@ class Solitaire:
 
             elif len(possible_moves) > 1:
                 s = "\n".join(
-                    [
-                        f"{i}: {card_img(card[1])}"
-                        for i, card in enumerate(possible_moves)
-                    ]
+                    [f"{i}: {card[1].img}" for i, card in enumerate(possible_moves)]
                 )
                 while True:
                     move_choice = input(s + "\nEnter Choice: ")

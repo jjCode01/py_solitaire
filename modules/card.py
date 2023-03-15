@@ -37,6 +37,7 @@ class Card:
     def flip(self) -> None:
         self.face_down = not self.face_down
 
+    @property
     def img(self) -> str:
         return self.back_img if self.face_down else self.front_img
 
