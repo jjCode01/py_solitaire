@@ -28,9 +28,10 @@ def log_game(game: Solitaire, date: datetime, duration: int, cards: list[Card]) 
     statistics_file = Path.joinpath(data_file_path, "py_card_game_statistics.txt")
 
     deck_id = hash((card for card in cards))
+    card_list = "\t".join([card.face + card.suit for card in cards])
 
     with open(game_data_file, "a") as f:
-        f.write(f"{deck_id}\t{cards}\n")
+        f.write(f"{deck_id}\t{card_list}\n")
 
     game_statistics = [
         f"{date:%Y-%m-%d %H:%M}",
