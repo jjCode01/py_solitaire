@@ -27,7 +27,6 @@ class Solitaire:
         self.draw_cards = []
         self.moves: int = 0
         self.win: bool = False
-        self.duration_seconds: int = 0
 
     def __str__(self) -> str:
         board = self._draw_aces_row()
