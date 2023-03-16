@@ -2,9 +2,11 @@ from os import system, name
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
+import psycopg2
 from time import sleep, perf_counter
 
 from modules.card_types import get_playing_cards
+from test import insert_game
 from modules.deck import Deck
 from modules.card import Card
 
@@ -379,6 +381,7 @@ def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
 
 
 def main():
+
     data_file_path = Path.joinpath(Path.home(), "py_card_games")
     if not Path.exists(data_file_path):
         Path.mkdir(data_file_path)
@@ -407,6 +410,14 @@ def main():
     start_date = datetime.now()
     game.start_game()
     end_time = perf_counter()
+
+    insert_game(
+        f"{start_date:%Y-%m-%d %H:%M}",
+        game_types[game_select],
+        game.win,
+        int(end_time - start_time),
+        game.moves,
+    )
 
     game_statistics = [
         f"{start_date:%Y-%m-%d %H:%M}",
