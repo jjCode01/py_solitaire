@@ -1,13 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from time import perf_counter
 
-from crud import insert_game
+import database as db
 from solitaire import Solitaire
+from modules.card import Card
 
 
-def main():
-
+def check_files() -> Path:
     data_file_path = Path.joinpath(Path.home(), "py_card_games")
     if not Path.exists(data_file_path):
         Path.mkdir(data_file_path)
@@ -19,43 +19,52 @@ def main():
             f.write("\t".join(columns))
             f.write("\n")
 
+    return data_file_path
+
+
+def log_game(game: Solitaire, date: datetime, duration: int, cards: list[Card]) -> None:
+    data_file_path = check_files()
     game_data_file = Path.joinpath(data_file_path, "py_card_game_data.txt")
+    statistics_file = Path.joinpath(data_file_path, "py_card_game_statistics.txt")
 
-    game_types = {"1": "classic", "2": "yukon"}
-    game_select = input("\n1: Classic Solitair\n2: Yukon Solitair\n:")
-    if not game_select in ("1", "2"):
-        main()
+    deck_id = hash((card for card in cards))
 
-    game = Solitaire(game_types[game_select])
-    deck_id = hash((card for card in game.deck.cards))
-    deck_cards = "\t".join([card.face + card.suit for card in game.deck.cards])
     with open(game_data_file, "a") as f:
-        f.write(f"{deck_id}\t{deck_cards}\n")
+        f.write(f"{deck_id}\t{cards}\n")
 
+    game_statistics = [
+        f"{date:%Y-%m-%d %H:%M}",
+        game.type,
+        f"{game.win}",
+        f"{int(duration)}",
+        f"{game.moves}",
+        f"{deck_id}",
+    ]
+
+    with open(statistics_file, "a") as f:
+        f.write("\t".join(game_statistics))
+        f.write("\n")
+
+
+def main():
+    game = Solitaire()
+    deck_cards = game.deck.cards[:]
     start_time = perf_counter()
     start_date = datetime.now()
     continue_play = game.start_game()
     end_time = perf_counter()
+    game_duration_seconds = int(end_time - start_time)
 
-    insert_game(
-        start_date,
-        game_types[game_select],
-        game.win,
-        int(end_time - start_time),
-        game.moves,
-    )
+    if game.moves > 0:
+        log_game(game, start_date, game_duration_seconds, deck_cards)
 
-    game_statistics = [
-        f"{start_date:%Y-%m-%d %H:%M}",
-        game_types[game_select],
-        f"{game.win}",
-        f"{end_time - start_time:.2f}",
-        f"{game.moves}",
-        f"{deck_id}",
-    ]
-    with open(statistics_file, "a") as f:
-        f.write("\t".join(game_statistics))
-        f.write("\n")
+        db.insert_game(
+            start_date + timedelta(days=1),
+            game.type,
+            game.win,
+            game_duration_seconds,
+            game.moves,
+        )
 
     if continue_play:
         main()

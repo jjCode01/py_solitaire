@@ -6,75 +6,92 @@ from modules.card import Card
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
 
+GAME_TYPES = {"1": "klondike", "2": "yukon"}
 PLAY_OPTIONS = {
-    "classic": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
+    "klondike": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
 
-ACES = ["S", "C", "D", "H"]
-KINGS = ["1", "2", "3", "4", "5", "6", "7"]
+
+class EndGame(Exception):
+    pass
+
+
+class NewGame(Exception):
+    pass
+
+
+class WinGame(Exception):
+    pass
 
 
 class Solitaire:
-    def __init__(self, game_type: str = "classic") -> None:
-        if game_type.lower() not in ("classic", "yukon"):
-            raise ValueError("Invalid Game Type")
-        self.type: str = game_type.lower()
+
+    ACES = ["S", "C", "D", "H"]
+    KINGS = ["1", "2", "3", "4", "5", "6", "7"]
+
+    def __init__(self) -> None:
+        self.type: str = ""
         self.deck: Deck = Deck(
             get_playing_cards(card_values=list(range(13))), shuffled=True
         )
-        self.stacks: dict[str, list[Card]] = {i: [] for i in KINGS + ACES}
+        self.stacks: dict[str, list[Card]] = {i: [] for i in self.KINGS + self.ACES}
         self.draw_cards = []
         self.moves: int = 0
         self.win: bool = False
 
     def __str__(self) -> str:
-        board = self._draw_aces_row()
-        board += self._draw_kings_row()
+        tableau = self._draw_aces_row()
+        tableau += self._draw_kings_row()
 
-        if self.type == "classic":
-            board += f"\n|  P  |  Deck: {len(self.deck)}\n"
-            board += "+-----+\n"
-
-            board += (
+        if self.type == "klondike":
+            tableau += f"\n|  P  |  Deck: {len(self.deck)}\n+-----+\n"
+            tableau += (
                 "|     |\n" if not self.draw_cards else f"|{self.draw_cards[-1].img}|\n"
             )
 
-        return board
+        return tableau
+
+    def refresh(self, memo: str = "", show_options: bool = True) -> None:
+        _ = system("cls") if name == "nt" else system("clear")
+        print(self)
+        print(memo)
+        if show_options:
+            print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
 
     def _draw_aces_row(self) -> str:
-        board = ""
-
-        # Aces Row
-        for col in ACES:
-            board += f"|  {col}  "
-        board += f"|{' ' * 12}Moves\n"
-        board += f"{'+-----' * 4}+{' ' * 12}-----\n"
-        for col in ACES:
+        tableau_ace = ""
+        for col in self.ACES:
+            tableau_ace += f"|  {col}  "
+        tableau_ace += f"|{' ' * 12}Moves\n"
+        tableau_ace += f"{'+-----' * 4}+{' ' * 12}-----\n"
+        for col in self.ACES:
             if self.stacks[col]:
                 card = self.stacks[col][-1]
-                board += f"|{card.img}"
+                tableau_ace += f"|{card.img}"
             else:
-                board += "|     "
-        board += f"|{' ' * 12}{' ' * (5 - len(str(self.moves)))}{self.moves:,}\n\n"
-        return board
+                tableau_ace += "|     "
+        tableau_ace += (
+            f"|{' ' * 12}{' ' * (5 - len(str(self.moves)))}{self.moves:,}\n\n"
+        )
+        return tableau_ace
 
     def _draw_kings_row(self) -> str:
-        board = ""
-        tallest = max((len(y) for x, y in self.stacks.items() if x in KINGS))
+        tableau_king = ""
+        tallest = max((len(y) for x, y in self.stacks.items() if x in self.KINGS))
         tallest = max((13, tallest))
-        for col in KINGS:
-            board += f"|  {col}  "
-        board += f"|\n{'+-----' * 7}+\n"
+        for col in self.KINGS:
+            tableau_king += f"|  {col}  "
+        tableau_king += f"|\n{'+-----' * 7}+\n"
         for row in range(tallest):
-            for col in KINGS:
+            for col in self.KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
                     card: Card = self.stacks[col][row]
-                    board += f"|{card.img}"
+                    tableau_king += f"|{card.img}"
                 else:
-                    board += "|     "
-            board += "|\n"
-        return board
+                    tableau_king += "|     "
+            tableau_king += "|\n"
+        return tableau_king
 
     def set_prev_state(self) -> None:
         self.prev_state = {
@@ -87,7 +104,7 @@ class Solitaire:
     def check_win(self) -> bool:
         if self.deck or self.draw_cards:
             return False
-        for i in KINGS:
+        for i in self.KINGS:
             could_win = True
             stack = self.stacks[i]
             if not stack:
@@ -107,7 +124,7 @@ class Solitaire:
             self._finish_game()
             return True
 
-        for i in KINGS:
+        for i in self.KINGS:
             if self.stacks[i]:
                 return False
         return True
@@ -116,14 +133,14 @@ class Solitaire:
         def king_to_empty(move_card: Card, to_stack: str) -> bool:
             if not move_card.face == "K":
                 return False
-            if not to_stack in KINGS:
+            if not to_stack in self.KINGS:
                 return False
             if self.stacks[to_stack]:
                 return False
             return True
 
         def ace_to_empty(move_card: Card, to_stack: str) -> bool:
-            if not to_stack in ACES:
+            if not to_stack in self.ACES:
                 return False
             if not move_card.face == "A":
                 return False
@@ -132,14 +149,14 @@ class Solitaire:
             return True
 
         def stack_to_stack(card: Card, to_stack: str) -> bool:
-            if not to_stack in KINGS:
+            if not to_stack in self.KINGS:
                 return False
             if not self.stacks[to_stack]:
                 return False
             return is_valid_position(self.stacks[to_stack][-1], card)
 
         def stack_to_ace(card: Card, to_stack: str) -> bool:
-            if not to_stack in ACES:
+            if not to_stack in self.ACES:
                 return False
             if card.suit != to_stack:
                 return False
@@ -181,15 +198,15 @@ class Solitaire:
         if self.stacks.get(stack_to_move) is None:
             return False
 
-        if stack_to_move in ACES:
+        if stack_to_move in self.ACES:
             card_to_move = self.stacks[stack_to_move][-1]
             if verify_play(card_to_move, move_to_stack):
                 self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
                 return True
             return False
 
-        if stack_to_move in KINGS:
-            if move_to_stack in ACES:
+        if stack_to_move in self.KINGS:
+            if move_to_stack in self.ACES:
                 card_to_move = self.stacks[stack_to_move][-1]
                 if verify_play(card_to_move, move_to_stack):
                     self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
@@ -249,7 +266,7 @@ class Solitaire:
             self.draw_cards = []
             self.pull_cards()
 
-    def init_board(self) -> None:
+    def init_tableau(self) -> None:
         for i in range(1, 8):
             self.stacks[str(i)].append(self.deck.deal_card())
 
@@ -263,84 +280,85 @@ class Solitaire:
 
         self.prev_state = {}
 
-    def start_game(self) -> bool:
-        self.init_board()
-        memo = "Lets Play!"
-        continue_play = False
-        player_wins = False
+    def undo(self) -> None:
+        if self.prev_state:
+            self.stacks = self.prev_state["stacks"].copy()
+            self.draw_cards = self.prev_state["draw_cards"][:]
+            self.deck.cards = self.prev_state["deck_cards"][:]
+            self.moves = self.prev_state["moves"]
 
-        # Game Loop
-        while True:
-            clear()
-            print(self)
-            print(memo)
-            print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
-            menu_select = input("Enter move: ")
-            menu_select = menu_select.lower()
-            if menu_select == "q":
-                break
-            elif menu_select == "n":
-                continue_play = True
-                break
-            elif menu_select == "u" and self.prev_state:
-                self.stacks = self.prev_state["stacks"].copy()
-                self.draw_cards = self.prev_state["draw_cards"][:]
-                self.deck.cards = self.prev_state["deck_cards"][:]
-                self.moves = self.prev_state["moves"]
-                memo = "Undo last move..."
-            elif menu_select == "d" and self.type == "classic":
-                memo = "Cards drawn..."
+    def process_command(self, command: str) -> str:
+        match command:
+            case "q":
+                raise EndGame
+            case "n":
+                raise NewGame
+            case "u":
+                self.undo()
+                return "Undo last move..."
+            case "d" if self.type == "classic":
                 self.set_prev_state()
                 self.pull_cards()
-            elif len(menu_select) == 1 and menu_select in KINGS:
-                if self.stacks[menu_select]:
-                    card = self.stacks[menu_select][-1]
-                    if self.move_stack(menu_select, card.suit):
-                        if self.check_win():
-                            player_wins = True
-                        else:
-                            memo = "Nice Play!"
-
-                    else:
-                        memo = "Invalid Move, Try Again!"
-
-            elif len(menu_select) == 2:
-                col_to_move = menu_select[0]
-                move_to_col = menu_select[1]
-
+                return "Draw cards from deck...."
+            case command if command in self.KINGS and self.stacks[command]:
+                card = self.stacks[command][-1]
+                if self.move_stack(command, card.suit):
+                    if self.check_win():
+                        raise WinGame
+                    return "Nice Move!"
+                return "Invalid Move. Try again..."
+            case command if len(command) == 2:
+                col_to_move = command[0]
+                move_to_col = command[1]
+                if not col_to_move in self.stacks or not move_to_col in self.stacks:
+                    return "Invalid Move. Try Again..."
                 if self.move_stack(col_to_move, move_to_col):
                     if self.check_win():
-                        player_wins = True
-                    else:
-                        memo = "Nice Play!"
+                        raise WinGame
+                    return "Nice Move!"
+                return "Invalid Move. Try Again..."
+            case _:
+                return "Invalid Move. Try again..."
 
-                else:
-                    memo = "Invalid Move, Try Again!"
+    def start_game(self) -> bool:
+        game_select = input("\n1: Klondike\n2: Yukon\n:")
+        if not game_select in GAME_TYPES:
+            self.start_game()
 
-            if player_wins:
-                self.win = True
-                self._finish_game()
-                clear()
-                print(self)
-                print("***** YOU WIN ******")
-                play_again = input("Plag again? [y/n] ")
-                if play_again.lower() == "y":
-                    continue_play = True
-                break
+        self.type = GAME_TYPES[game_select]
 
+        self.init_tableau()
+        memo = "Lets Play!"
+        continue_play = False
+
+        # Game Loop
+        try:
+            while True:
+                self.refresh(memo=memo)
+                command = input("Enter move: ").lower()
+                memo = self.process_command(command)
+        except WinGame:
+            self.win = True
+            self.refresh(memo="***** YOU WIN ******", show_options=False)
+            play_again = input("Plag again? [y/n] ")
+            if play_again.lower() == "y":
+                continue_play = True
+        except NewGame:
+            continue_play = True
+        except EndGame:
+            pass
         return continue_play
-        # main()
 
     def _finish_game(self):
         while True:
-            for stack in KINGS:
+            for stack in self.KINGS:
                 if self.stacks[stack]:
                     break
             else:
                 break
 
             for num, stack in self.stacks.items():
-                if num in KINGS and stack:
+                if num in self.KINGS and stack:
                     while True:
                         if not stack:
                             break
@@ -348,14 +366,7 @@ class Solitaire:
                         if not self.move_stack(num, card.suit):
                             break
                         sleep(0.4)
-                        clear()
-                        print(self)
-
-
-def clear():
-    """Clear terminal"""
-    # 'nt' = windows; 'posix' = linux or mac
-    _ = system("cls") if name == "nt" else system("clear")
+                        self.refresh(show_options=False)
 
 
 def is_valid_position(upper_card: Card, lower_card: Card) -> bool:

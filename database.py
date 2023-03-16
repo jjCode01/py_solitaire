@@ -26,7 +26,6 @@ def insert_game(date, type, win_flag, duration_seconds, move_count):
         cur.close()
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print("Error in writing to database...")
         print(error)
     finally:
         if conn is not None:
