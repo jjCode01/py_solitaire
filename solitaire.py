@@ -1,14 +1,10 @@
-from os import system, name
 from copy import deepcopy
-from datetime import datetime
-from pathlib import Path
-import psycopg2
-from time import sleep, perf_counter
+from os import system, name
+from time import sleep
 
-from modules.card_types import get_playing_cards
-from test import insert_game
-from modules.deck import Deck
 from modules.card import Card
+from modules.card_types import get_playing_cards
+from modules.deck import Deck
 
 PLAY_OPTIONS = {
     "classic": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
@@ -31,26 +27,11 @@ class Solitaire:
         self.draw_cards = []
         self.moves: int = 0
         self.win: bool = False
+        self.duration_seconds: int = 0
 
     def __str__(self) -> str:
         board = self._draw_aces_row()
         board += self._draw_kings_row()
-
-        # tallest = max((len(y) for x, y in self.stacks.items() if x in KINGS))
-        # tallest = max((13, tallest))
-        # for col in KINGS:
-        #     board += f"|  {col}  "
-        # board += "|\n"
-        # board += f"{'+-----' * 7}+\n"
-        # for row in range(tallest):
-        #     for col in KINGS:
-        #         if self.stacks.get(col) and row < len(self.stacks[col]):
-        #             card: Card = self.stacks[col][row]
-        #             board += f"|{card.img}"
-        #         else:
-        #             board += "|     "
-
-        #     board += "|\n"
 
         if self.type == "classic":
             board += f"\n|  P  |  Deck: {len(self.deck)}\n"
@@ -133,7 +114,7 @@ class Solitaire:
         return True
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
-        def _king_to_empty(move_card: Card, to_stack: str) -> bool:
+        def king_to_empty(move_card: Card, to_stack: str) -> bool:
             if not move_card.face == "K":
                 return False
             if not to_stack in KINGS:
@@ -142,7 +123,7 @@ class Solitaire:
                 return False
             return True
 
-        def _ace_to_empty(move_card: Card, to_stack: str) -> bool:
+        def ace_to_empty(move_card: Card, to_stack: str) -> bool:
             if not to_stack in ACES:
                 return False
             if not move_card.face == "A":
@@ -151,14 +132,14 @@ class Solitaire:
                 return False
             return True
 
-        def _stack_to_stack(card: Card, to_stack: str) -> bool:
+        def stack_to_stack(card: Card, to_stack: str) -> bool:
             if not to_stack in KINGS:
                 return False
             if not self.stacks[to_stack]:
                 return False
             return is_valid_position(self.stacks[to_stack][-1], card)
 
-        def _stack_to_ace(card: Card, to_stack: str) -> bool:
+        def stack_to_ace(card: Card, to_stack: str) -> bool:
             if not to_stack in ACES:
                 return False
             if card.suit != to_stack:
@@ -169,13 +150,13 @@ class Solitaire:
                 return False
             return True
 
-        def _verify_play(move_card: Card, to_stack: str) -> bool:
+        def verify_play(move_card: Card, to_stack: str) -> bool:
             if any(
                 (
-                    _king_to_empty(move_card, to_stack),
-                    _stack_to_stack(move_card, to_stack),
-                    _ace_to_empty(move_card, to_stack),
-                    _stack_to_ace(move_card, to_stack),
+                    king_to_empty(move_card, to_stack),
+                    stack_to_stack(move_card, to_stack),
+                    ace_to_empty(move_card, to_stack),
+                    stack_to_ace(move_card, to_stack),
                 )
             ):
                 self.set_prev_state()
@@ -193,7 +174,7 @@ class Solitaire:
             if not self.draw_cards:
                 return False
 
-            if _verify_play(self.draw_cards[-1], move_to_stack):
+            if verify_play(self.draw_cards[-1], move_to_stack):
                 self.stacks[move_to_stack].append(self.draw_cards.pop())
                 return True
             return False
@@ -203,7 +184,7 @@ class Solitaire:
 
         if stack_to_move in ACES:
             card_to_move = self.stacks[stack_to_move][-1]
-            if _verify_play(card_to_move, move_to_stack):
+            if verify_play(card_to_move, move_to_stack):
                 self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
                 return True
             return False
@@ -211,7 +192,7 @@ class Solitaire:
         if stack_to_move in KINGS:
             if move_to_stack in ACES:
                 card_to_move = self.stacks[stack_to_move][-1]
-                if _verify_play(card_to_move, move_to_stack):
+                if verify_play(card_to_move, move_to_stack):
                     self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
                     if self.stacks[stack_to_move]:
                         self.stacks[stack_to_move][-1].face_down = False
@@ -221,7 +202,7 @@ class Solitaire:
             possible_moves = [
                 (i, card)
                 for i, card in enumerate(self.stacks.get(stack_to_move, []))
-                if not card.face_down and _verify_play(card, move_to_stack)
+                if not card.face_down and verify_play(card, move_to_stack)
             ]
 
             if len(possible_moves) == 1:
@@ -283,7 +264,7 @@ class Solitaire:
 
         self.prev_state = {}
 
-    def start_game(self) -> None:
+    def start_game(self) -> bool:
         self.init_board()
         memo = "Lets Play!"
         continue_play = False
@@ -348,8 +329,8 @@ class Solitaire:
                     continue_play = True
                 break
 
-        if continue_play:
-            main()
+        return continue_play
+        # main()
 
     def _finish_game(self):
         while True:
@@ -372,71 +353,15 @@ class Solitaire:
                         print(self)
 
 
-def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
-    if upper_card.color == lower_card.color:
-        return False
-    if upper_card.value != lower_card.value + 1:
-        return False
-    return True
-
-
-def main():
-
-    data_file_path = Path.joinpath(Path.home(), "py_card_games")
-    if not Path.exists(data_file_path):
-        Path.mkdir(data_file_path)
-
-    statistics_file = Path.joinpath(data_file_path, "py_card_game_statistics.txt")
-    if not Path.is_file(statistics_file):
-        columns = ["date", "game", "win", "length_seconds", "moves", "deck_id"]
-        with open(statistics_file, "w") as f:
-            f.write("\t".join(columns))
-            f.write("\n")
-
-    game_data_file = Path.joinpath(data_file_path, "py_card_game_data.txt")
-
-    game_types = {"1": "classic", "2": "yukon"}
-    game_select = input("\n1: Classic Solitair\n2: Yukon Solitair\n:")
-    if not game_select in ("1", "2"):
-        main()
-
-    game = Solitaire(game_types[game_select])
-    deck_id = hash((card for card in game.deck.cards))
-    deck_cards = "\t".join([card.face + card.suit for card in game.deck.cards])
-    with open(game_data_file, "a") as f:
-        f.write(f"{deck_id}\t{deck_cards}\n")
-
-    start_time = perf_counter()
-    start_date = datetime.now()
-    game.start_game()
-    end_time = perf_counter()
-
-    insert_game(
-        f"{start_date:%Y-%m-%d %H:%M}",
-        game_types[game_select],
-        game.win,
-        int(end_time - start_time),
-        game.moves,
-    )
-
-    game_statistics = [
-        f"{start_date:%Y-%m-%d %H:%M}",
-        game_types[game_select],
-        f"{game.win}",
-        f"{end_time - start_time:.2f}",
-        f"{game.moves}",
-        f"{deck_id}",
-    ]
-    with open(statistics_file, "a") as f:
-        f.write("\t".join(game_statistics))
-        f.write("\n")
-
-
 def clear():
     """Clear terminal"""
     # 'nt' = windows; 'posix' = linux or mac
     _ = system("cls") if name == "nt" else system("clear")
 
 
-if __name__ == "__main__":
-    main()
+def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
+    if upper_card.color == lower_card.color:
+        return False
+    if upper_card.value != lower_card.value + 1:
+        return False
+    return True
