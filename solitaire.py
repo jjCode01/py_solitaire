@@ -318,8 +318,6 @@ class Solitaire:
             case command if len(command) == 2:
                 col_to_move = command[0]
                 move_to_col = command[1]
-                # if not col_to_move in self.stacks or not move_to_col in self.stacks:
-                #     return "Invalid Move. Try Again..."
                 if self.move_stack(col_to_move, move_to_col):
                     if self.check_win():
                         raise WinGame
