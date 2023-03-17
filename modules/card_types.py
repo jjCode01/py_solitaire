@@ -15,9 +15,7 @@ SUIT_IMAGES = {"H": "♥", "D": "♦", "C": "♣", "S": "♠"}
 
 
 def card_img(face: str, suit: str) -> str:
-    if face == "10":
-        return f"{CARD_COLORS[suit]} {face}{SUIT_IMAGES[suit]} \033[m"
-    return f"{CARD_COLORS[suit]}  {face}{SUIT_IMAGES[suit]} \033[m"
+    return f"{CARD_COLORS[suit]}{face+SUIT_IMAGES[suit]:>4} \033[m"
 
 
 def get_playing_cards(

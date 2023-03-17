@@ -28,10 +28,6 @@ class Card:
         return hash((self.face, self.suit, self.face_down))
 
     def __str__(self) -> str:
-        # if self.face_down:
-        #     return "---"
-        # if len(self.face) == 2:
-        #     return f"{self.face}{self.suit}"
         return f"{self.face}{self.suit}"
 
     def flip(self) -> None:

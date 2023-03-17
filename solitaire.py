@@ -1,4 +1,5 @@
 from copy import deepcopy
+from io import StringIO
 from os import system, name
 from time import sleep
 
@@ -36,21 +37,23 @@ class Solitaire:
             get_playing_cards(card_values=list(range(13))), shuffled=True
         )
         self.stacks: dict[str, list[Card]] = {i: [] for i in self.KINGS + self.ACES}
-        self.draw_cards = []
+        self.draw_cards: list[Card] = []
         self.moves: int = 0
         self.win: bool = False
 
     def __str__(self) -> str:
-        tableau = self._draw_aces_row()
-        tableau += self._draw_kings_row()
+
+        tableau = StringIO()
+        tableau.write(self._draw_aces_row())
+        tableau.write(self._draw_kings_row())
 
         if self.type == "klondike":
-            tableau += f"\n|  P  |  Deck: {len(self.deck)}\n+-----+\n"
-            tableau += (
+            tableau.write(f"\n|  P  |  Deck: {len(self.deck)}\n+-----+\n")
+            tableau.write(
                 "|     |\n" if not self.draw_cards else f"|{self.draw_cards[-1].img}|\n"
             )
 
-        return tableau
+        return tableau.getvalue()
 
     def refresh(self, memo: str = "", show_options: bool = True) -> None:
         _ = system("cls") if name == "nt" else system("clear")
@@ -60,38 +63,36 @@ class Solitaire:
             print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
 
     def _draw_aces_row(self) -> str:
-        tableau_ace = ""
+        tableau_ace = StringIO()
         for col in self.ACES:
-            tableau_ace += f"|  {col}  "
-        tableau_ace += f"|{' ' * 12}Moves\n"
-        tableau_ace += f"{'+-----' * 4}+{' ' * 12}-----\n"
+            tableau_ace.write(f"|{col:^5}")
+        tableau_ace.write(f"|{'Moves':>17}\n")
+        tableau_ace.write(f"{'+-----' * 4}+{' ' * 12}-----\n")
         for col in self.ACES:
             if self.stacks[col]:
                 card = self.stacks[col][-1]
-                tableau_ace += f"|{card.img}"
+                tableau_ace.write(f"|{card.img}")
             else:
-                tableau_ace += "|     "
-        tableau_ace += (
-            f"|{' ' * 12}{' ' * (5 - len(str(self.moves)))}{self.moves:,}\n\n"
-        )
-        return tableau_ace
+                tableau_ace.write("|     ")
+        tableau_ace.write(f"|{' ' * 12}{self.moves:^5,}\n\n")
+        return tableau_ace.getvalue()
 
     def _draw_kings_row(self) -> str:
-        tableau_king = ""
+        tableau_king = StringIO()
         tallest = max((len(y) for x, y in self.stacks.items() if x in self.KINGS))
         tallest = max((13, tallest))
         for col in self.KINGS:
-            tableau_king += f"|  {col}  "
-        tableau_king += f"|\n{'+-----' * 7}+\n"
+            tableau_king.write(f"|{col:^5}")
+        tableau_king.write(f"|\n{'+-----' * 7}+\n")
         for row in range(tallest):
             for col in self.KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
                     card: Card = self.stacks[col][row]
-                    tableau_king += f"|{card.img}"
+                    tableau_king.write(f"|{card.img}")
                 else:
-                    tableau_king += "|     "
-            tableau_king += "|\n"
-        return tableau_king
+                    tableau_king.write("|     ")
+            tableau_king.write("|\n")
+        return tableau_king.getvalue()
 
     def set_prev_state(self) -> None:
         self.prev_state = {
@@ -296,10 +297,17 @@ class Solitaire:
             case "u":
                 self.undo()
                 return "Undo last move..."
-            case "d" if self.type == "classic":
+            case "d" if self.type == "klondike":
                 self.set_prev_state()
                 self.pull_cards()
                 return "Draw cards from deck...."
+            case "p" if self.type == "klondike":
+                card = self.draw_cards[-1]
+                if self.move_stack(command, card.suit):
+                    if self.check_win():
+                        raise WinGame
+                    return "Nice Move!"
+                return "Invalid Move. Try again..."
             case command if command in self.KINGS and self.stacks[command]:
                 card = self.stacks[command][-1]
                 if self.move_stack(command, card.suit):
@@ -310,8 +318,8 @@ class Solitaire:
             case command if len(command) == 2:
                 col_to_move = command[0]
                 move_to_col = command[1]
-                if not col_to_move in self.stacks or not move_to_col in self.stacks:
-                    return "Invalid Move. Try Again..."
+                # if not col_to_move in self.stacks or not move_to_col in self.stacks:
+                #     return "Invalid Move. Try Again..."
                 if self.move_stack(col_to_move, move_to_col):
                     if self.check_win():
                         raise WinGame
