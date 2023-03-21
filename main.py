@@ -67,6 +67,11 @@ def main():
             game.moves,
         )
 
+    games_played = db.games_played()
+    games_won = sum(game[0] for game in games_played)
+
+    print(f"You've played {len(games_played):,} games and won {games_won:,} of them.")
+
     if continue_play:
         main()
 
