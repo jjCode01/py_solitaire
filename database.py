@@ -10,9 +10,8 @@ def games_played() -> list:
         params = config()
         conn = psycopg2.connect(**params)
         cur = conn.cursor()
-        cur.execute("SELECT win_flag from game", [])
+        cur.execute("SELECT win_flag, move_count FROM game WHERE move_count > 0", [])
         games = cur.fetchall()
-        conn.commit()
         cur.close()
 
     except (Exception, psycopg2.DatabaseError) as error:
@@ -21,10 +20,6 @@ def games_played() -> list:
         if conn is not None:
             conn.close()
     return games
-
-
-def games_won():
-    ...
 
 
 def insert_game(date, type, win_flag, duration_seconds, move_count):
