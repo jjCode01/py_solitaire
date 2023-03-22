@@ -6,6 +6,7 @@ from time import sleep
 from modules.card import Card
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
+from modules.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
 PLAY_OPTIONS = {
@@ -26,18 +27,25 @@ class WinGame(Exception):
     pass
 
 
+
+
 class Solitaire:
 
     ACES = ["S", "C", "D", "H"]
     KINGS = ["1", "2", "3", "4", "5", "6", "7"]
+    PULL = "P"
 
     def __init__(self) -> None:
         self.type: str = ""
         self.deck: Deck = Deck(
             get_playing_cards(card_values=list(range(13))), shuffled=True
         )
-        self.stacks: dict[str, list[Card]] = {i: [] for i in self.KINGS + self.ACES}
-        self.draw_cards: list[Card] = []
+        self.stacks: dict[str, Stack] = {}
+        for k in self.KINGS:
+            self.stacks[k] = Stack(k, "KING")
+        for a in self.ACES:
+            self.stacks[a] = Stack(a, "ACE")
+        self.draw_cards: Stack = Stack("P", "PULL")
         self.moves: int = 0
         self.win: bool = False
 
@@ -48,9 +56,9 @@ class Solitaire:
         tableau.write(self._draw_kings_row())
 
         if self.type == "klondike":
-            tableau.write(f"\n|  P  |  Deck: {len(self.deck)}\n+-----+\n")
+            tableau.write(f"\n|  {self.PULL}  |  Deck: {len(self.deck)}\n+-----+\n")
             tableau.write(
-                "|     |\n" if not self.draw_cards else f"|{self.draw_cards[-1].img}|\n"
+                "|     |\n" if not self.draw_cards else f"|{self.draw_cards.cards[-1].img}|\n"
             )
 
         return tableau.getvalue()
@@ -70,7 +78,7 @@ class Solitaire:
         tableau_ace.write(f"{'+-----' * 4}+{' ' * 12}-----\n")
         for col in self.ACES:
             if self.stacks[col]:
-                card = self.stacks[col][-1]
+                card = self.stacks[col].cards[-1]
                 tableau_ace.write(f"|{card.img}")
             else:
                 tableau_ace.write("|     ")
@@ -87,7 +95,7 @@ class Solitaire:
         for row in range(tallest):
             for col in self.KINGS:
                 if self.stacks.get(col) and row < len(self.stacks[col]):
-                    card: Card = self.stacks[col][row]
+                    card: Card = self.stacks[col].cards[row]
                     tableau_king.write(f"|{card.img}")
                 else:
                     tableau_king.write("|     ")
@@ -96,11 +104,13 @@ class Solitaire:
 
     def set_prev_state(self) -> None:
         self.prev_state = {
-            "stacks": deepcopy(self.stacks),
-            "draw_cards": self.draw_cards[:],
+            "stacks": {},
+            "draw_cards": self.draw_cards.cards[:],
             "deck_cards": self.deck.cards[:],
             "moves": self.moves,
         }
+        for stack in self.KINGS + self.ACES:
+            self.prev_state["stacks"][stack] = deepcopy(self.stacks[stack].cards)
 
     def check_win(self) -> bool:
         if self.deck or self.draw_cards:
@@ -110,13 +120,13 @@ class Solitaire:
             stack = self.stacks[i]
             if not stack:
                 continue
-            if stack[0].face_down:
+            if stack.cards[0].face_down:
                 break
-            if not stack[0].face == "K":
+            if not stack.cards[0].face == "K":
                 break
-            for n, card in enumerate(self.stacks[i][1:], 1):
-                prev_card = self.stacks[i][n - 1]
-                if not is_valid_position(prev_card, card):
+            for n, card in enumerate(self.stacks[i].cards[1:], 1):
+                prev_card = self.stacks[i].cards[n - 1]
+                if not is_valid_king_position(prev_card, card):
                     could_win = False
                     break
             if not could_win:
@@ -129,6 +139,7 @@ class Solitaire:
             if self.stacks[i]:
                 return False
         return True
+        
 
     def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
         def king_to_empty(move_card: Card, to_stack: str) -> bool:
@@ -154,7 +165,7 @@ class Solitaire:
                 return False
             if not self.stacks[to_stack]:
                 return False
-            return is_valid_position(self.stacks[to_stack][-1], card)
+            return is_valid_king_position(self.stacks[to_stack].cards[-1], card)
 
         def stack_to_ace(card: Card, to_stack: str) -> bool:
             if not to_stack in self.ACES:
@@ -163,7 +174,7 @@ class Solitaire:
                 return False
             if not self.stacks[to_stack]:
                 return False
-            if card.value != self.stacks[to_stack][-1].value + 1:
+            if card.value != self.stacks[to_stack].cards[-1].value + 1:
                 return False
             return True
 
@@ -187,12 +198,11 @@ class Solitaire:
         if stack_to_move == move_to_stack:
             return False
 
-        if stack_to_move == "P":
+        if stack_to_move == self.PULL:
             if not self.draw_cards:
                 return False
-
-            if verify_play(self.draw_cards[-1], move_to_stack):
-                self.stacks[move_to_stack].append(self.draw_cards.pop())
+            if verify_play(self.draw_cards.cards[-1], move_to_stack):
+                self.stacks[move_to_stack].add(*self.draw_cards.pop())
                 return True
             return False
 
@@ -200,25 +210,25 @@ class Solitaire:
             return False
 
         if stack_to_move in self.ACES:
-            card_to_move = self.stacks[stack_to_move][-1]
+            card_to_move = self.stacks[stack_to_move].cards[-1]
             if verify_play(card_to_move, move_to_stack):
-                self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
+                self.stacks[move_to_stack].add(*self.stacks[stack_to_move].pop())
                 return True
             return False
 
         if stack_to_move in self.KINGS:
             if move_to_stack in self.ACES:
-                card_to_move = self.stacks[stack_to_move][-1]
+                card_to_move = self.stacks[stack_to_move].cards[-1]
                 if verify_play(card_to_move, move_to_stack):
-                    self.stacks[move_to_stack].append(self.stacks[stack_to_move].pop())
+                    self.stacks[move_to_stack].add(*self.stacks[stack_to_move].pop())
                     if self.stacks[stack_to_move]:
-                        self.stacks[stack_to_move][-1].face_down = False
+                        self.stacks[stack_to_move].cards[-1].face_down = False
                     return True
                 return False
-
+            
             possible_moves = [
                 (i, card)
-                for i, card in enumerate(self.stacks.get(stack_to_move, []))
+                for i, card in enumerate(self.stacks[stack_to_move].cards)
                 if not card.face_down and verify_play(card, move_to_stack)
             ]
 
@@ -243,48 +253,52 @@ class Solitaire:
                 return False
 
             self.set_prev_state()
-            stack = self.stacks[stack_to_move][move_card:]
-            self.stacks[stack_to_move] = self.stacks[stack_to_move][:move_card]
+            stack = self.stacks[stack_to_move].cards[move_card:]
+            self.stacks[stack_to_move].cards = self.stacks[stack_to_move].cards[:move_card]
 
             if self.stacks[stack_to_move]:
-                self.stacks[stack_to_move][-1].face_down = False
+                self.stacks[stack_to_move].cards[-1].face_down = False
 
-            self.stacks[move_to_stack] += stack
+            self.stacks[move_to_stack].cards += stack
             return True
         return False
 
     def pull_cards(self) -> None:
         if len(self.deck) >= 3:
-            self.draw_cards += self.deck.cards[:3]
+            self.draw_cards.cards += self.deck.cards[:3]
             self.deck.cards = self.deck.cards[3:]
 
         elif 0 < len(self.deck) < 3:
-            self.draw_cards += self.deck.cards[:]
+            self.draw_cards.cards += self.deck.cards[:]
             self.deck.cards = []
 
         elif not self.deck and self.draw_cards:
-            self.deck.cards = self.draw_cards[:]
-            self.draw_cards = []
+            self.deck.cards = self.draw_cards.cards[:]
+            self.draw_cards.clear()
             self.pull_cards()
 
     def init_tableau(self) -> None:
         for i in range(1, 8):
-            self.stacks[str(i)].append(self.deck.deal_card())
+            card = self.deck.deal_card()
+            self.stacks[str(i)].add(card)
 
             for j in range(i + 1, 8):
-                self.stacks[str(j)].append(self.deck.deal_card(face_down=True))
+                card = self.deck.deal_card(face_down=True)
+                self.stacks[str(j)].add(card)
 
         if self.type == "yukon":
             for _ in range(4):
                 for i in range(2, 8):
-                    self.stacks[str(i)].append(self.deck.deal_card())
+                    card = self.deck.deal_card()
+                    self.stacks[str(i)].add(card)
 
         self.prev_state = {}
 
     def undo(self) -> None:
         if self.prev_state:
-            self.stacks = self.prev_state["stacks"].copy()
-            self.draw_cards = self.prev_state["draw_cards"][:]
+            for stack in self.KINGS + self.ACES:
+                self.stacks[stack].cards = self.prev_state["stacks"][stack][:]
+            self.draw_cards.cards = self.prev_state["draw_cards"][:]
             self.deck.cards = self.prev_state["deck_cards"][:]
             self.moves = self.prev_state["moves"]
 
@@ -302,14 +316,14 @@ class Solitaire:
                 self.pull_cards()
                 return "Draw cards from deck...."
             case "p" if self.type == "klondike":
-                card = self.draw_cards[-1]
+                card = self.draw_cards.cards[-1]
                 if self.move_stack(command, card.suit):
                     if self.check_win():
                         raise WinGame
                     return "Nice Move!"
                 return "Invalid Move. Try again..."
             case command if command in self.KINGS and self.stacks[command]:
-                card = self.stacks[command][-1]
+                card = self.stacks[command].cards[-1]
                 if self.move_stack(command, card.suit):
                     if self.check_win():
                         raise WinGame
@@ -368,16 +382,23 @@ class Solitaire:
                     while True:
                         if not stack:
                             break
-                        card = stack[-1]
+                        card = stack.cards[-1]
                         if not self.move_stack(num, card.suit):
                             break
                         sleep(0.4)
                         self.refresh(show_options=False)
 
 
-def is_valid_position(upper_card: Card, lower_card: Card) -> bool:
+def is_valid_king_position(upper_card: Card, lower_card: Card) -> bool:
     if upper_card.color == lower_card.color:
         return False
     if upper_card.value != lower_card.value + 1:
+        return False
+    return True
+
+def is_valid_ace_position(upper_card: Card, lower_card: Card) -> bool:
+    if upper_card.suit == lower_card.suit:
+        return False
+    if upper_card.value != lower_card.value - 1:
         return False
     return True

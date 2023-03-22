@@ -15,6 +15,7 @@ class Deck:
         self.cards: list[Card] = cards
         if shuffled:
             self.shuffle()
+        self.uid = hash((card.face + card.suit for card in self.cards))
 
     def __len__(self) -> int:
         return len(self.cards)
