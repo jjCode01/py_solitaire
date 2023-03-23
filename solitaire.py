@@ -45,7 +45,7 @@ class Solitaire:
             self.stacks[k] = Stack(k, "KING")
         for a in self.ACES:
             self.stacks[a] = Stack(a, "ACE")
-        self.draw_cards: Stack = Stack("P", "PULL")
+        self.stacks["P"] = Stack("P", "PULL")
         self.moves: int = 0
         self.win: bool = False
 
@@ -58,7 +58,7 @@ class Solitaire:
         if self.type == "klondike":
             tableau.write(f"\n|  {self.PULL}  |  Deck: {len(self.deck)}\n+-----+\n")
             tableau.write(
-                "|     |\n" if not self.draw_cards else f"|{self.draw_cards.cards[-1].img}|\n"
+                "|     |\n" if not self.stacks["P"] else f"|{self.stacks['P'].cards[-1].img}|\n"
             )
 
         return tableau.getvalue()
@@ -105,7 +105,7 @@ class Solitaire:
     def set_prev_state(self) -> None:
         self.prev_state = {
             "stacks": {},
-            "draw_cards": self.draw_cards.cards[:],
+            "draw_cards": self.stacks["P"].cards[:],
             "deck_cards": self.deck.cards[:],
             "moves": self.moves,
         }
@@ -113,7 +113,7 @@ class Solitaire:
             self.prev_state["stacks"][stack] = deepcopy(self.stacks[stack].cards)
 
     def check_win(self) -> bool:
-        if self.deck or self.draw_cards:
+        if self.deck or self.stacks["P"]:
             return False
         for i in self.KINGS:
             could_win = True
@@ -141,140 +141,66 @@ class Solitaire:
         return True
         
 
-    def move_stack(self, stack_to_move: str, move_to_stack: str) -> bool:
-        def king_to_empty(move_card: Card, to_stack: str) -> bool:
-            if not move_card.face == "K":
-                return False
-            if not to_stack in self.KINGS:
-                return False
-            if self.stacks[to_stack]:
-                return False
-            return True
-
-        def ace_to_empty(move_card: Card, to_stack: str) -> bool:
-            if not to_stack in self.ACES:
-                return False
-            if not move_card.face == "A":
-                return False
-            if not to_stack == move_card.suit and self.stacks[to_stack]:
-                return False
-            return True
-
-        def stack_to_stack(card: Card, to_stack: str) -> bool:
-            if not to_stack in self.KINGS:
-                return False
-            if not self.stacks[to_stack]:
-                return False
-            return is_valid_king_position(self.stacks[to_stack].cards[-1], card)
-
-        def stack_to_ace(card: Card, to_stack: str) -> bool:
-            if not to_stack in self.ACES:
-                return False
-            if card.suit != to_stack:
-                return False
-            if not self.stacks[to_stack]:
-                return False
-            if card.value != self.stacks[to_stack].cards[-1].value + 1:
-                return False
-            return True
-
-        def verify_play(move_card: Card, to_stack: str) -> bool:
-            if any(
-                (
-                    king_to_empty(move_card, to_stack),
-                    stack_to_stack(move_card, to_stack),
-                    ace_to_empty(move_card, to_stack),
-                    stack_to_ace(move_card, to_stack),
-                )
-            ):
-                self.set_prev_state()
-                self.moves += 1
-                return True
-            return False
-
-        stack_to_move = stack_to_move.upper()
+    def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:
+        move_from_stack = move_from_stack.upper()
         move_to_stack = move_to_stack.upper()
 
-        if stack_to_move == move_to_stack:
+        if move_from_stack == move_to_stack:
+            return False
+        if move_from_stack not in (*self.KINGS, *self.ACES, self.PULL):
+            return False
+        if move_to_stack not in self.KINGS + self.ACES:
+            return False
+        
+        to_stack: Stack = self.stacks[move_to_stack]
+        from_stack: Stack = self.stacks[move_from_stack]
+
+        available_moves = to_stack.valid_moves(from_stack)
+
+        if not available_moves:
             return False
 
-        if stack_to_move == self.PULL:
-            if not self.draw_cards:
-                return False
-            if verify_play(self.draw_cards.cards[-1], move_to_stack):
-                self.stacks[move_to_stack].add(*self.draw_cards.pop())
-                return True
+        if len(available_moves) == 1:
+            start_index = available_moves[0]
+        elif len(available_moves) > 1:
+            s = "\n".join(
+                [f"{i}: {from_stack.cards[card_index].img}" for i, card_index in enumerate(available_moves, 1)]
+            )
+            while True:
+                move_choice = input(s + "\nEnter Choice: ")
+                if not move_choice.isnumeric():
+                    continue
+                if not 1 <= int(move_choice) < len(available_moves) + 1:
+                    continue
+                break
+
+            start_index = available_moves[int(move_choice) - 1][0]
+
+        else:
             return False
+        
+        self.set_prev_state()
+        card_stack = self.stacks[move_from_stack].cards[start_index:]
+        self.stacks[move_from_stack].cards = self.stacks[move_from_stack].cards[:start_index]
 
-        if self.stacks.get(stack_to_move) is None:
-            return False
+        if self.stacks[move_from_stack]:
+            self.stacks[move_from_stack].cards[-1].face_down = False
 
-        if stack_to_move in self.ACES:
-            card_to_move = self.stacks[stack_to_move].cards[-1]
-            if verify_play(card_to_move, move_to_stack):
-                self.stacks[move_to_stack].add(*self.stacks[stack_to_move].pop())
-                return True
-            return False
-
-        if stack_to_move in self.KINGS:
-            if move_to_stack in self.ACES:
-                card_to_move = self.stacks[stack_to_move].cards[-1]
-                if verify_play(card_to_move, move_to_stack):
-                    self.stacks[move_to_stack].add(*self.stacks[stack_to_move].pop())
-                    if self.stacks[stack_to_move]:
-                        self.stacks[stack_to_move].cards[-1].face_down = False
-                    return True
-                return False
-            
-            possible_moves = [
-                (i, card)
-                for i, card in enumerate(self.stacks[stack_to_move].cards)
-                if not card.face_down and verify_play(card, move_to_stack)
-            ]
-
-            if len(possible_moves) == 1:
-                move_card = possible_moves[0][0]
-
-            elif len(possible_moves) > 1:
-                s = "\n".join(
-                    [f"{i}: {card[1].img}" for i, card in enumerate(possible_moves, 1)]
-                )
-                while True:
-                    move_choice = input(s + "\nEnter Choice: ")
-                    if not move_choice.isnumeric():
-                        continue
-                    if not 1 <= int(move_choice) < len(possible_moves) + 1:
-                        continue
-                    break
-
-                move_card = possible_moves[int(move_choice) - 1][0]
-
-            else:
-                return False
-
-            self.set_prev_state()
-            stack = self.stacks[stack_to_move].cards[move_card:]
-            self.stacks[stack_to_move].cards = self.stacks[stack_to_move].cards[:move_card]
-
-            if self.stacks[stack_to_move]:
-                self.stacks[stack_to_move].cards[-1].face_down = False
-
-            self.stacks[move_to_stack].cards += stack
-            return True
-        return False
+        self.stacks[move_to_stack].cards += card_stack
+        return True
 
     def pull_cards(self) -> None:
         if len(self.deck) >= 3:
-            self.draw_cards.cards += self.deck.cards[:3]
+            self.stacks["P"].cards += self.deck.cards[:3]
             self.deck.cards = self.deck.cards[3:]
 
         elif 0 < len(self.deck) < 3:
-            self.draw_cards.cards += self.deck.cards[:]
+            self.stacks["P"].cards += self.deck.cards[:]
             self.deck.cards = []
 
-        elif not self.deck and self.draw_cards:
-            self.deck.cards = self.draw_cards.cards[:]
-            self.draw_cards.clear()
+        elif not self.deck and self.stacks["P"]:
+            self.deck.cards = self.stacks["P"].cards[:]
+            self.stacks["P"].clear()
             self.pull_cards()
 
     def init_tableau(self) -> None:
@@ -298,7 +224,7 @@ class Solitaire:
         if self.prev_state:
             for stack in self.KINGS + self.ACES:
                 self.stacks[stack].cards = self.prev_state["stacks"][stack][:]
-            self.draw_cards.cards = self.prev_state["draw_cards"][:]
+            self.stacks["P"].cards = self.prev_state["draw_cards"][:]
             self.deck.cards = self.prev_state["deck_cards"][:]
             self.moves = self.prev_state["moves"]
 
@@ -316,7 +242,7 @@ class Solitaire:
                 self.pull_cards()
                 return "Draw cards from deck...."
             case "p" if self.type == "klondike":
-                card = self.draw_cards.cards[-1]
+                card = self.stacks["P"].cards[-1]
                 if self.move_stack(command, card.suit):
                     if self.check_win():
                         raise WinGame
@@ -393,12 +319,5 @@ def is_valid_king_position(upper_card: Card, lower_card: Card) -> bool:
     if upper_card.color == lower_card.color:
         return False
     if upper_card.value != lower_card.value + 1:
-        return False
-    return True
-
-def is_valid_ace_position(upper_card: Card, lower_card: Card) -> bool:
-    if upper_card.suit == lower_card.suit:
-        return False
-    if upper_card.value != lower_card.value - 1:
         return False
     return True
