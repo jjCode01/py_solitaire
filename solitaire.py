@@ -162,20 +162,17 @@ class Solitaire:
                     continue
                 break
 
-            start_index = available_moves[int(move_choice) - 1][0]
-
+            start_index = available_moves[int(move_choice) - 1]
         else:
             return False
         
         self.set_prev_state()
-        # card_stack = self.stacks[move_from_stack].cards[start_index:]
-        # self.stacks[move_from_stack].cards = self.stacks[move_from_stack].cards[:start_index]
+        self.moves += 1
         to_stack.add(*from_stack.pop(start_index))
 
-        if self.stacks[move_from_stack]:
-            self.stacks[move_from_stack].cards[-1].face_down = False
+        if from_stack:
+            from_stack.cards[-1].face_down = False
 
-        # self.stacks[move_to_stack].cards += card_stack
         return True
 
     def pull_cards(self) -> None:

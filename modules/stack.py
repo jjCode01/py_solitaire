@@ -30,14 +30,19 @@ class Stack:
         self.cards = []
 
     def pop(self, index: int = -1) -> list[Card]:
-        if self.cards and index == -1:
-            return [self.cards.pop()]
+        # if self.cards and index == -1:
+        #     card = self.cards.pop()
+        #     if self.cards:
+        #         self.cards[-1].face_down = False
+        #     return [card]
         
-        if not 0 <= index < len(self.cards):
+        if not -1 <= index < len(self.cards):
             raise IndexError("index out of range")
         
         remove_cards = self.cards[index:]
         self.cards = self.cards[:index]
+        if self.cards:
+            self.cards[-1].face_down = False
         return remove_cards
 
     def valid_moves(self, from_stack: "Stack") -> list:
