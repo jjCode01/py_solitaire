@@ -6,6 +6,7 @@ from time import sleep
 from modules.card import Card
 from modules.card_types import get_playing_cards
 from modules.deck import Deck
+from modules.exceptions import *
 from modules.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
@@ -13,19 +14,6 @@ PLAY_OPTIONS = {
     "klondike": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
-
-
-class EndGame(Exception):
-    pass
-
-
-class NewGame(Exception):
-    pass
-
-
-class WinGame(Exception):
-    pass
-
 
 
 
@@ -180,13 +168,14 @@ class Solitaire:
             return False
         
         self.set_prev_state()
-        card_stack = self.stacks[move_from_stack].cards[start_index:]
-        self.stacks[move_from_stack].cards = self.stacks[move_from_stack].cards[:start_index]
+        # card_stack = self.stacks[move_from_stack].cards[start_index:]
+        # self.stacks[move_from_stack].cards = self.stacks[move_from_stack].cards[:start_index]
+        to_stack.add(*from_stack.pop(start_index))
 
         if self.stacks[move_from_stack]:
             self.stacks[move_from_stack].cards[-1].face_down = False
 
-        self.stacks[move_to_stack].cards += card_stack
+        # self.stacks[move_to_stack].cards += card_stack
         return True
 
     def pull_cards(self) -> None:

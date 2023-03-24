@@ -15,6 +15,9 @@ class Stack:
     def __bool__(self) -> bool:
         return len(self.cards) > 0
     
+    def __hash__(self) -> int:
+        return hash(tuple(self.cards))
+    
 
     def add(self, *cards: Card) -> None:
         for card in cards:
@@ -36,13 +39,6 @@ class Stack:
         remove_cards = self.cards[index:]
         self.cards = self.cards[:index]
         return remove_cards
-    
-    # def transfer(self, other: "Stack"):
-    #     moves = selfvalid_moves(self, other)
-    #     if len(moves) == 1:
-
-    #     transfer_cards = self.pop(start_index)
-    #     other.add(*transfer_cards)
 
     def valid_moves(self, from_stack: "Stack") -> list:
         if not from_stack.cards:
