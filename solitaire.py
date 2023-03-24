@@ -50,6 +50,9 @@ class Solitaire:
             )
 
         return tableau.getvalue()
+    
+    def __hash__(self) -> int:
+        return hash(tuple(self.stacks))
 
     def refresh(self, memo: str = "", show_options: bool = True) -> None:
         _ = system("cls") if name == "nt" else system("clear")
@@ -104,50 +107,26 @@ class Solitaire:
         if self.deck or self.stacks["P"]:
             return False
         for i in self.KINGS:
-            could_win = True
             stack = self.stacks[i]
             if not stack:
                 continue
             if stack.cards[0].face_down:
-                break
-            if not stack.cards[0].face == "K":
-                break
+                return False
             for n, card in enumerate(self.stacks[i].cards[1:], 1):
                 prev_card = self.stacks[i].cards[n - 1]
                 if not is_valid_king_position(prev_card, card):
-                    could_win = False
-                    break
-            if not could_win:
-                break
-        else:
-            self._finish_game()
-            return True
+                    return False
 
-        for i in self.KINGS:
-            if self.stacks[i]:
-                return False
+        self._finish_game()
         return True
-        
 
-    def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:
-        move_from_stack = move_from_stack.upper()
-        move_to_stack = move_to_stack.upper()
-
-        if move_from_stack == move_to_stack:
-            return False
-        if move_from_stack not in (*self.KINGS, *self.ACES, self.PULL):
-            return False
-        if move_to_stack not in self.KINGS + self.ACES:
-            return False
-        
-        to_stack: Stack = self.stacks[move_to_stack]
-        from_stack: Stack = self.stacks[move_from_stack]
-
+    def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:    
+        to_stack: Stack = self.stacks[move_to_stack.upper()]
+        from_stack: Stack = self.stacks[move_from_stack.upper()]
         available_moves = to_stack.valid_moves(from_stack)
 
         if not available_moves:
             return False
-
         if len(available_moves) == 1:
             start_index = available_moves[0]
         elif len(available_moves) > 1:
@@ -158,7 +137,7 @@ class Solitaire:
                 move_choice = input(s + "\nEnter Choice: ")
                 if not move_choice.isnumeric():
                     continue
-                if not 1 <= int(move_choice) < len(available_moves) + 1:
+                if 1 > int(move_choice) >= len(available_moves) + 1:
                     continue
                 break
 
@@ -215,36 +194,38 @@ class Solitaire:
             self.moves = self.prev_state["moves"]
 
     def process_command(self, command: str) -> str:
+        def move_to_ace(command: str) -> str:
+            card = self.stacks[command.upper()].cards[-1]
+            if self.move_stack(command, card.suit):
+                if self.check_win():
+                    raise WinGame
+                return "Nice Move!"
+            return "Invalid Move. Try again..."
+        
         match command:
-            case "q":
-                raise EndGame
-            case "n":
-                raise NewGame
-            case "u":
+            case "q":   # quit game
+                if input("Are you sure you want to quit? [y]: ").upper() == "Y":
+                    raise EndGame
+                return "Lets Play!"
+            case "n":   # new game
+                if input("Are you sure you want start a new game? [y]: ").upper() == "Y":
+                    raise NewGame
+                return "Lets Play!"
+            case "u":   # undo last move
                 self.undo()
                 return "Undo last move..."
-            case "d" if self.type == "klondike":
+            case "d" if self.type == "klondike":    # draw cards from deck
                 self.set_prev_state()
                 self.pull_cards()
                 return "Draw cards from deck...."
             case "p" if self.type == "klondike":
-                card = self.stacks["P"].cards[-1]
-                if self.move_stack(command, card.suit):
-                    if self.check_win():
-                        raise WinGame
-                    return "Nice Move!"
-                return "Invalid Move. Try again..."
+                return move_to_ace(command)
             case command if command in self.KINGS and self.stacks[command]:
-                card = self.stacks[command].cards[-1]
-                if self.move_stack(command, card.suit):
-                    if self.check_win():
-                        raise WinGame
-                    return "Nice Move!"
-                return "Invalid Move. Try again..."
+                return move_to_ace(command)
             case command if len(command) == 2:
-                col_to_move = command[0]
-                move_to_col = command[1]
-                if self.move_stack(col_to_move, move_to_col):
+                from_col = command[0]
+                to_col = command[1]
+                if self.move_stack(from_col, to_col):
                     if self.check_win():
                         raise WinGame
                     return "Nice Move!"
@@ -261,7 +242,6 @@ class Solitaire:
 
         self.init_tableau()
         memo = "Lets Play!"
-        continue_play = False
 
         # Game Loop
         try:
@@ -274,12 +254,12 @@ class Solitaire:
             self.refresh(memo="***** YOU WIN ******", show_options=False)
             play_again = input("Plag again? [y/n] ")
             if play_again.lower() == "y":
-                continue_play = True
+                return True
+            return False
         except NewGame:
-            continue_play = True
+            return True
         except EndGame:
-            pass
-        return continue_play
+            return False
 
     def _finish_game(self):
         while True:
@@ -297,7 +277,7 @@ class Solitaire:
                         card = stack.cards[-1]
                         if not self.move_stack(num, card.suit):
                             break
-                        sleep(0.4)
+                        sleep(0.33)
                         self.refresh(show_options=False)
 
 

@@ -30,12 +30,6 @@ class Stack:
         self.cards = []
 
     def pop(self, index: int = -1) -> list[Card]:
-        # if self.cards and index == -1:
-        #     card = self.cards.pop()
-        #     if self.cards:
-        #         self.cards[-1].face_down = False
-        #     return [card]
-        
         if not -1 <= index < len(self.cards):
             raise IndexError("index out of range")
         
