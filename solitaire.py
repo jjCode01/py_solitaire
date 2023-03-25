@@ -1,6 +1,9 @@
 from copy import deepcopy
 from io import StringIO
 from os import system, name
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 from time import sleep
 
 from modules.card import Card
@@ -41,6 +44,8 @@ class Solitaire:
 
         tableau = StringIO()
         tableau.write(self._draw_aces_row())
+        # self._draw_aces_row()
+
         tableau.write(self._draw_kings_row())
 
         if self.type == "klondike":
@@ -61,7 +66,25 @@ class Solitaire:
         if show_options:
             print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
 
-    def _draw_aces_row(self) -> str:
+    def _draw_aces_row(self):
+        # table = Table(show_lines=False)
+
+        # for col in self.ACES:
+        #     table.add_column(col, justify="center", width=5)
+
+        # row = []
+        # for stack in self.ACES:
+        #     if self.stacks[stack]:
+        #         card = self.stacks[stack].cards[-1]
+        #         row.append(Text.from_ansi(card.img))
+        #     else:
+        #         row.append("")
+
+        # table.add_row(*row)
+
+        # console = Console(markup=False)
+        # console.print(table)
+
         tableau_ace = StringIO()
         for col in self.ACES:
             tableau_ace.write(f"|{col:^5}")
