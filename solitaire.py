@@ -1,9 +1,6 @@
 from copy import deepcopy
 from io import StringIO
 from os import system, name
-from rich.console import Console
-from rich.table import Table
-from rich.text import Text
 from time import sleep
 
 from modules.card import Card
@@ -17,7 +14,6 @@ PLAY_OPTIONS = {
     "klondike": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
     "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
 }
-
 
 
 class Solitaire:
@@ -44,15 +40,27 @@ class Solitaire:
 
         tableau = StringIO()
         tableau.write(self._draw_aces_row())
-        # self._draw_aces_row()
-
         tableau.write(self._draw_kings_row())
 
         if self.type == "klondike":
-            tableau.write(f"\n|  {self.PULL}  |  Deck: {len(self.deck)}\n+-----+\n")
-            tableau.write(
-                "|     |\n" if not self.stacks["P"] else f"|{self.stacks['P'].cards[-1].img}|\n"
-            )
+            pull_cards_cnt = max(len(self.stacks["P"]) * - 1, -3)
+            white_space: int = pull_cards_cnt * -1 * 6 + 7
+            if not self.stacks["P"]:
+                tableau.write("\n\n")
+                if self.deck:
+                    tableau.write(f"\n{self.deck.cards[-1].back_img} ")
+                else:
+                    tableau.write("\n      ")
+            else:
+                tableau.write(f"\n{'|  P  |':>{white_space}}\n")
+                tableau.write(f"{'+-----+':>{white_space}}\n")
+                if self.deck:
+                    tableau.write(f"{self.deck.cards[-1].back_img} ")
+                else:
+                    tableau.write("      ")
+                for i in range(pull_cards_cnt, 0):
+                    tableau.write(f" {self.stacks['P'].cards[i].img}")
+            tableau.write("\n")
 
         return tableau.getvalue()
     
@@ -67,24 +75,6 @@ class Solitaire:
             print("Options:", " | ".join(PLAY_OPTIONS[self.type]))
 
     def _draw_aces_row(self):
-        # table = Table(show_lines=False)
-
-        # for col in self.ACES:
-        #     table.add_column(col, justify="center", width=5)
-
-        # row = []
-        # for stack in self.ACES:
-        #     if self.stacks[stack]:
-        #         card = self.stacks[stack].cards[-1]
-        #         row.append(Text.from_ansi(card.img))
-        #     else:
-        #         row.append("")
-
-        # table.add_row(*row)
-
-        # console = Console(markup=False)
-        # console.print(table)
-
         tableau_ace = StringIO()
         for col in self.ACES:
             tableau_ace.write(f"|{col:^5}")
