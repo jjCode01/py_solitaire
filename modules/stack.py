@@ -1,7 +1,9 @@
 from modules.card import Card
 
+
 class Stack:
     locations = ["ACE", "KING", "PULL"]
+
     def __init__(self, id: str, location: str) -> None:
         if not location in self.locations:
             raise ValueError("Invalid Stack type, must be 'ACE', 'KING', or 'PULL'")
@@ -11,19 +13,18 @@ class Stack:
 
     def __len__(self) -> int:
         return len(self.cards)
-    
+
     def __bool__(self) -> bool:
         return len(self.cards) > 0
-    
+
     def __hash__(self) -> int:
         return hash(tuple(self.cards))
-    
 
     def add(self, *cards: Card) -> None:
         for card in cards:
             if not isinstance(card, Card):
                 raise ValueError("Expected argument card to be class<'Card'>")
-            
+
             self.cards.append(card)
 
     def clear(self):
@@ -32,7 +33,7 @@ class Stack:
     def pop(self, index: int = -1) -> list[Card]:
         if not -1 <= index < len(self.cards):
             raise IndexError("index out of range")
-        
+
         remove_cards = self.cards[index:]
         self.cards = self.cards[:index]
         if self.cards:
@@ -48,22 +49,25 @@ class Stack:
             return valid_move_to_king(from_stack, self)
         return []
 
+
 def valid_move_to_ace(from_stack: Stack, to_stack: Stack) -> list:
     if valid_ace_order(to_stack, from_stack.cards[-1]):
         return [len(from_stack.cards) - 1]
     return []
+
 
 def valid_move_to_king(from_stack: Stack, to_stack: Stack) -> list:
     if from_stack.location != "KING":
         if valid_king_order(to_stack, from_stack.cards[-1]):
             return [len(from_stack.cards) - 1]
         return []
-    
+
     valid_moves = []
     for i, card in enumerate(from_stack.cards):
         if not card.face_down and valid_king_order(to_stack, card):
             valid_moves.append(i)
     return valid_moves
+
 
 def valid_ace_order(ace_stack: Stack, card: Card) -> bool:
     if card.suit != ace_stack.id:
@@ -73,6 +77,7 @@ def valid_ace_order(ace_stack: Stack, card: Card) -> bool:
     if ace_stack and card.value == ace_stack.cards[-1].value + 1:
         return True
     return False
+
 
 def valid_king_order(king_stack: Stack, card: Card) -> bool:
     if not king_stack.cards and card.face == "K":
