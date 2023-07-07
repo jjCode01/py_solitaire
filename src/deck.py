@@ -1,6 +1,6 @@
 import random
 from typing import Iterable
-from modules.card import Card
+from src.card import Card
 
 
 class EmptyDeck(Exception):

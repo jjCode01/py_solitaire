@@ -3,11 +3,11 @@ from io import StringIO
 from os import system, name
 from time import sleep
 
-from modules.card import Card
-from modules.card_types import get_playing_cards
-from modules.deck import Deck
-from modules.exceptions import *
-from modules.stack import Stack
+from src.card import Card
+from src.card_types import get_playing_cards
+from src.deck import Deck
+from src.exceptions import WinGame, EndGame, NewGame
+from src.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
 PLAY_OPTIONS = {
@@ -17,7 +17,6 @@ PLAY_OPTIONS = {
 
 
 class Solitaire:
-
     ACES = ["S", "C", "D", "H"]
     KINGS = ["1", "2", "3", "4", "5", "6", "7"]
     PULL = "P"
@@ -37,13 +36,12 @@ class Solitaire:
         self.win: bool = False
 
     def __str__(self) -> str:
-
         tableau = StringIO()
         tableau.write(self._draw_aces_row())
         tableau.write(self._draw_kings_row())
 
         if self.type == "klondike":
-            pull_cards_cnt = max(len(self.stacks["P"]) * - 1, -3)
+            pull_cards_cnt = max(len(self.stacks["P"]) * -1, -3)
             white_space: int = pull_cards_cnt * -1 * 6 + 7
             if not self.stacks["P"]:
                 tableau.write("\n\n")
@@ -63,7 +61,7 @@ class Solitaire:
             tableau.write("\n")
 
         return tableau.getvalue()
-    
+
     def __hash__(self) -> int:
         return hash(tuple(self.stacks))
 
@@ -133,7 +131,7 @@ class Solitaire:
         self._finish_game()
         return True
 
-    def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:    
+    def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:
         to_stack: Stack = self.stacks[move_to_stack.upper()]
         from_stack: Stack = self.stacks[move_from_stack.upper()]
         available_moves = to_stack.valid_moves(from_stack)
@@ -144,7 +142,10 @@ class Solitaire:
             start_index = available_moves[0]
         elif len(available_moves) > 1:
             s = "\n".join(
-                [f"{i}: {from_stack.cards[card_index].img}" for i, card_index in enumerate(available_moves, 1)]
+                [
+                    f"{i}: {from_stack.cards[card_index].img}"
+                    for i, card_index in enumerate(available_moves, 1)
+                ]
             )
             while True:
                 move_choice = input(s + "\nEnter Choice: ")
@@ -157,7 +158,7 @@ class Solitaire:
             start_index = available_moves[int(move_choice) - 1]
         else:
             return False
-        
+
         self.set_prev_state()
         self.moves += 1
         to_stack.add(*from_stack.pop(start_index))
@@ -214,20 +215,23 @@ class Solitaire:
                     raise WinGame
                 return "Nice Move!"
             return "Invalid Move. Try again..."
-        
+
         match command:
-            case "q":   # quit game
+            case "q":  # quit game
                 if input("Are you sure you want to quit? [y]: ").upper() == "Y":
                     raise EndGame
                 return "Lets Play!"
-            case "n":   # new game
-                if input("Are you sure you want start a new game? [y]: ").upper() == "Y":
+            case "n":  # new game
+                if (
+                    input("Are you sure you want start a new game? [y]: ").upper()
+                    == "Y"
+                ):
                     raise NewGame
                 return "Lets Play!"
-            case "u":   # undo last move
+            case "u":  # undo last move
                 self.undo()
                 return "Undo last move..."
-            case "d" if self.type == "klondike":    # draw cards from deck
+            case "d" if self.type == "klondike":  # draw cards from deck
                 self.set_prev_state()
                 self.pull_cards()
                 return "Draw cards from deck...."
@@ -248,7 +252,7 @@ class Solitaire:
 
     def start_game(self) -> bool:
         game_select = input("\n1: Klondike\n2: Yukon\n:")
-        if not game_select in GAME_TYPES:
+        if game_select not in GAME_TYPES:
             self.start_game()
 
         self.type = GAME_TYPES[game_select]

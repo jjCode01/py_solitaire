@@ -1,11 +1,11 @@
-from modules.card import Card
+from src.card import Card
 
 
 class Stack:
     locations = ["ACE", "KING", "PULL"]
 
     def __init__(self, id: str, location: str) -> None:
-        if not location in self.locations:
+        if location not in self.locations:
             raise ValueError("Invalid Stack type, must be 'ACE', 'KING', or 'PULL'")
         self.id: str = id
         self.location: str = location
