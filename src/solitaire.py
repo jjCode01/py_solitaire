@@ -132,6 +132,10 @@ class Solitaire:
         return True
 
     def move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:
+        if move_from_stack.upper() not in self.stacks:
+            return False
+        if move_to_stack.upper() not in self.stacks:
+            return False
         to_stack: Stack = self.stacks[move_to_stack.upper()]
         from_stack: Stack = self.stacks[move_from_stack.upper()]
         available_moves = to_stack.valid_moves(from_stack)
