@@ -4,7 +4,7 @@ from src.card import Card
 
 
 class EmptyDeck(Exception):
-    pass
+    """No more cards left in deck"""
 
 
 class Deck:
@@ -49,6 +49,17 @@ class Deck:
         return hash(tuple(self.cards))
 
     def deal_card(self, face_down: bool = False) -> Card:
+        """Deal card from deck
+
+        Args:
+            face_down (bool, optional): Card is face down or face up. Defaults to False (face up).
+
+        Raises:
+            EmptyDeck: No cards left in deck
+
+        Returns:
+            Card: Next card from deck
+        """
         if not self.cards:
             raise EmptyDeck("Deck is out of cards")
 
@@ -57,4 +68,5 @@ class Deck:
         return card
 
     def shuffle(self) -> None:
+        """Shuffle cards in deck"""
         random.shuffle(self.cards)
