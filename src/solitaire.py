@@ -1,12 +1,12 @@
 from copy import deepcopy
 from io import StringIO
-from os import system, name
+from os import name, system
 from time import sleep
 
 from src.card import Card
 from src.card_types import get_playing_cards
 from src.deck import Deck
-from src.exceptions import WinGame, EndGame, NewGame
+from src.exceptions import EndGame, NewGame, WinGame
 from src.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
@@ -155,14 +155,27 @@ class Solitaire:
                 ]
             )
             while True:
-                move_choice = input(s + "\nEnter Choice: ")
-                if not move_choice.isnumeric():
+                try:
+                    move_choice = int(input(s + "\nEnter Choice: "))
+                except ValueError:
                     continue
-                if 1 > int(move_choice) >= len(available_moves) + 1:
-                    continue
-                break
+                else:
+                    try:
+                        start_index = available_moves[move_choice - 1]
+                    except IndexError:
+                        continue
+                    else:
+                        break
+            #     move_choice = input(s + "\nEnter Choice: ")
+            #     if move_choice.isnumeric():
+            #         move_choice_int = int(move_choice)
+            #     if not move_choice.isnumeric():
+            #         continue
+            #     if 1 > int(move_choice) >= len(available_moves) + 1:
+            #         continue
+            #     break
 
-            start_index = available_moves[int(move_choice) - 1]
+            # start_index = available_moves[int(move_choice) - 1]
         else:
             return False
 
