@@ -166,16 +166,6 @@ class Solitaire:
                         continue
                     else:
                         break
-            #     move_choice = input(s + "\nEnter Choice: ")
-            #     if move_choice.isnumeric():
-            #         move_choice_int = int(move_choice)
-            #     if not move_choice.isnumeric():
-            #         continue
-            #     if 1 > int(move_choice) >= len(available_moves) + 1:
-            #         continue
-            #     break
-
-            # start_index = available_moves[int(move_choice) - 1]
         else:
             return False
 
