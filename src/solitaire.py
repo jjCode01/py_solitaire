@@ -155,8 +155,11 @@ class Solitaire:
                 ]
             )
             while True:
+                player_input = input(s + "\nEnter Choice (leave blank to abort): ")
+                if not player_input:
+                    return False
                 try:
-                    move_choice = int(input(s + "\nEnter Choice: "))
+                    move_choice = int(player_input)
                 except ValueError:
                     continue
                 else:
