@@ -22,7 +22,8 @@ class Solitaire:
     ACES = ["S", "C", "D", "H"]
     KINGS = ["1", "2", "3", "4", "5", "6", "7"]
     PULL = "P"
-    prev_state: dict
+    _curr_state: dict
+    _prev_state: dict
 
     def __init__(self) -> None:
         self.type: str = ""
@@ -63,8 +64,6 @@ class Solitaire:
                 for i in range(pull_cards_cnt, 0):
                     tableau.write(f" {self.stacks['P'].cards[i].img}")
             tableau.write("\n")
-
-        # tableau.write(" ".join((str(h) for h in self._hashes)))
 
         return tableau.getvalue()
 
@@ -110,15 +109,19 @@ class Solitaire:
             tableau_king.write("|\n")
         return tableau_king.getvalue()
 
-    def _set_prev_state(self) -> None:
-        self.prev_state = {
+    def _get_state(self) -> dict:
+        _state = {
             "stacks": {},
             "draw_cards": self.stacks["P"].cards[:],
             "deck_cards": self.deck.cards[:],
             "moves": self.moves,
+            "hashses": self._hashes[:],
         }
+
         for stack in self.KINGS + self.ACES:
-            self.prev_state["stacks"][stack] = deepcopy(self.stacks[stack].cards)
+            _state["stacks"][stack] = deepcopy(self.stacks[stack].cards)
+
+        return _state
 
     def _check_win(self) -> bool:
         if self.deck or self.stacks["P"]:
@@ -144,6 +147,8 @@ class Solitaire:
         #   IF HASH DOES NOT EXIST - RETURN FALSE
         #   IF HASH DOES EXIST - CONTINUE TO CHECK
         # IF FOR LOOP IS COMPLETED WITHOUT RETURN THEN RETURN TRUE
+
+        self._curr_state = self._get_state()
 
         for i in self.ACES + self.KINGS:
             if not self.stacks[i]:
@@ -206,7 +211,7 @@ class Solitaire:
         else:
             return False
 
-        self._set_prev_state()
+        self._prev_state = self._get_state()
         self.moves += 1
         to_stack.add(*from_stack.pop(start_index))
 
@@ -214,6 +219,8 @@ class Solitaire:
             from_stack.cards[-1].face_down = False
 
         self._hashes.append(hash(self))
+
+        self._curr_state = self._get_state()
 
         return True
 
@@ -246,16 +253,16 @@ class Solitaire:
                     card = self.deck.deal_card()
                     self.stacks[str(i)].add(card)
 
-        self.prev_state = {}
+        self._prev_state = {}
         self._hashes = [hash(self)]
 
     def _undo(self) -> None:
-        if self.prev_state:
+        if self._prev_state:
             for stack in self.KINGS + self.ACES:
-                self.stacks[stack].cards = self.prev_state["stacks"][stack][:]
-            self.stacks["P"].cards = self.prev_state["draw_cards"][:]
-            self.deck.cards = self.prev_state["deck_cards"][:]
-            self.moves = self.prev_state["moves"]
+                self.stacks[stack].cards = self._prev_state["stacks"][stack][:]
+            self.stacks["P"].cards = self._prev_state["draw_cards"][:]
+            self.deck.cards = self._prev_state["deck_cards"][:]
+            self.moves = self._prev_state["moves"]
 
     def _process_command(self, command: str) -> str:
         def move_to_ace(command: str) -> str:
@@ -284,7 +291,7 @@ class Solitaire:
                 self._undo()
                 return "Undo last move..."
             case "d" if self.type == "klondike":  # draw cards from deck
-                self._set_prev_state()
+                self._prev_state = self._get_state()
                 self._pull_cards()
                 return "Draw cards from deck...."
             case "p" if self.type == "klondike":
