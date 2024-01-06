@@ -57,6 +57,10 @@ def valid_move_to_ace(from_stack: Stack, to_stack: Stack) -> list:
 
 
 def valid_move_to_king(from_stack: Stack, to_stack: Stack) -> list:
+    if from_stack.location == "ACE":
+        if len(from_stack) <= 1:
+            # Cannot move Ace back down
+            return []
     if from_stack.location != "KING":
         if valid_king_order(to_stack, from_stack.cards[-1]):
             return [len(from_stack.cards) - 1]
