@@ -8,3 +8,7 @@ class NewGame(Exception):
 
 class WinGame(Exception):
     pass
+
+
+class LoseGame(Exception):
+    pass

@@ -6,7 +6,7 @@ from time import sleep
 from src.card import Card
 from src.card_types import get_playing_cards
 from src.deck import Deck
-from src.exceptions import EndGame, NewGame, WinGame
+from src.exceptions import EndGame, LoseGame, NewGame, WinGame
 from src.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
@@ -37,6 +37,7 @@ class Solitaire:
         self.stacks["P"] = Stack("P", "PULL")
         self.moves: int = 0
         self.win: bool = False
+        self._hashes: list[int] = []
 
     def __str__(self) -> str:
         tableau = StringIO()
@@ -63,10 +64,12 @@ class Solitaire:
                     tableau.write(f" {self.stacks['P'].cards[i].img}")
             tableau.write("\n")
 
+        # tableau.write(" ".join((str(h) for h in self._hashes)))
+
         return tableau.getvalue()
 
     def __hash__(self) -> int:
-        return hash(tuple(self.stacks))
+        return hash(tuple(self.stacks.values()))
 
     def _refresh(self, memo: str = "", show_options: bool = True) -> None:
         _ = system("cls") if name == "nt" else system("clear")
@@ -134,6 +137,37 @@ class Solitaire:
         self._finish_game()
         return True
 
+    def _check_lost(self) -> bool:
+        # CREATE SNAPSHOT OF CURRENT GAME
+        # RUN THRU EACH STACK TO CHECK FOR VALID MOVE
+        # MAKE MOVE; VERIFY HASH AFTER MOVE IS NOT ALREADY IN self._hashes
+        #   IF HASH DOES NOT EXIST - RETURN FALSE
+        #   IF HASH DOES EXIST - CONTINUE TO CHECK
+        # IF FOR LOOP IS COMPLETED WITHOUT RETURN THEN RETURN TRUE
+
+        for i in self.ACES + self.KINGS:
+            if not self.stacks[i]:
+                continue
+            for j in self.ACES + self.KINGS:
+                if j == i:
+                    continue
+                if self._is_valid_move(j, i):
+                    return False
+        return True
+
+    def _is_valid_move(self, move_from_stack: str, move_to_stack: str) -> bool:
+        if move_from_stack.upper() not in self.stacks:
+            return False
+        if move_to_stack.upper() not in self.stacks:
+            return False
+        to_stack: Stack = self.stacks[move_to_stack.upper()]
+        from_stack: Stack = self.stacks[move_from_stack.upper()]
+        available_moves = to_stack.valid_moves(from_stack)
+
+        if not available_moves:
+            return False
+        return True
+
     def _move_stack(self, move_from_stack: str, move_to_stack: str) -> bool:
         if move_from_stack.upper() not in self.stacks:
             return False
@@ -179,6 +213,8 @@ class Solitaire:
         if from_stack:
             from_stack.cards[-1].face_down = False
 
+        self._hashes.append(hash(self))
+
         return True
 
     def _pull_cards(self) -> None:
@@ -211,6 +247,7 @@ class Solitaire:
                     self.stacks[str(i)].add(card)
 
         self.prev_state = {}
+        self._hashes = [hash(self)]
 
     def _undo(self) -> None:
         if self.prev_state:
@@ -226,6 +263,8 @@ class Solitaire:
             if self._move_stack(command, card.suit):
                 if self._check_win():
                     raise WinGame
+                if self._check_lost():
+                    raise LoseGame
                 return "Nice Move!"
             return "Invalid Move. Try again..."
 
@@ -283,6 +322,12 @@ class Solitaire:
         except WinGame:
             self.win = True
             self._refresh(memo="***** YOU WIN ******", show_options=False)
+            play_again = input("Plag again? [y/n] ")
+            if play_again.lower() == "y":
+                return True
+            return False
+        except LoseGame:
+            self._refresh(memo="***** NO MORE MOVES *****", show_options=False)
             play_again = input("Plag again? [y/n] ")
             if play_again.lower() == "y":
                 return True
