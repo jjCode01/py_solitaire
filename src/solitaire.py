@@ -39,6 +39,7 @@ class Solitaire:
         self.moves: int = 0
         self.win: bool = False
         self._hashes: list[int] = []
+        self._available_moves: int = 0
 
     def __str__(self) -> str:
         tableau = StringIO()
@@ -64,6 +65,8 @@ class Solitaire:
                 for i in range(pull_cards_cnt, 0):
                     tableau.write(f" {self.stacks['P'].cards[i].img}")
             tableau.write("\n")
+
+        tableau.write(f"Available Moves: {self._available_moves}")
 
         return tableau.getvalue()
 
@@ -149,6 +152,7 @@ class Solitaire:
         # IF FOR LOOP IS COMPLETED WITHOUT RETURN THEN RETURN TRUE
 
         self._curr_state = self._get_state()
+        self._available_moves = 0
 
         for i in self.ACES + self.KINGS:
             if not self.stacks[i]:
@@ -156,8 +160,13 @@ class Solitaire:
             for j in self.ACES + self.KINGS:
                 if j == i:
                     continue
-                if self._is_valid_move(j, i):
-                    return False
+                # if self._is_valid_move(j, i):
+                self._available_moves += len(self.stacks[i].valid_moves(self.stacks[j]))
+                # available_moves = self.stacks[i].valid_moves(self.stacks[j])
+                # if len(available_moves) > 1:
+                # elif len(available_moves) == 1:
+        if self._available_moves > 1:
+            return False
         return True
 
     def _is_valid_move(self, move_from_stack: str, move_to_stack: str) -> bool:
@@ -253,6 +262,9 @@ class Solitaire:
                     card = self.deck.deal_card()
                     self.stacks[str(i)].add(card)
 
+        if self._check_lost():
+            raise LoseGame
+
         self._prev_state = {}
         self._hashes = [hash(self)]
 
@@ -304,6 +316,8 @@ class Solitaire:
                 if self._move_stack(from_col, to_col):
                     if self._check_win():
                         raise WinGame
+                    if self._check_lost():
+                        raise LoseGame
                     return "Nice Move!"
                 return "Invalid Move. Try Again..."
             case _:
