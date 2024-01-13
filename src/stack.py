@@ -20,6 +20,17 @@ class Stack:
     def __hash__(self) -> int:
         return hash(tuple(self.cards))
 
+    def __iter__(self):
+        self.current_index = 0
+        return self
+
+    def __next__(self):
+        if self.current_index < len(self.cards):
+            x = self.cards[self.current_index]
+            self.current_index += 1
+            return x
+        raise StopIteration
+
     def add(self, *cards: Card) -> None:
         for card in cards:
             if not isinstance(card, Card):
@@ -76,9 +87,9 @@ def valid_move_to_king(from_stack: Stack, to_stack: Stack) -> list:
 def valid_ace_order(ace_stack: Stack, card: Card) -> bool:
     if card.suit != ace_stack.id:
         return False
-    if not ace_stack and card.face == "A":
+    if len(ace_stack.cards) == 0 and card.face == "A":
         return True
-    if ace_stack and card.value == ace_stack.cards[-1].value + 1:
+    if ace_stack.cards and card.value == ace_stack.cards[-1].value + 1:
         return True
     return False
 

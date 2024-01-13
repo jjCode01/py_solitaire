@@ -11,8 +11,14 @@ from src.stack import Stack
 
 GAME_TYPES = {"1": "klondike", "2": "yukon"}
 PLAY_OPTIONS = {
-    "klondike": ["[d] to draw cards", "[u] undo", "[n] new game", "[q] to quit"],
-    "yukon": ["[u] undo", "[n] new game", "[q] to quit"],
+    "klondike": [
+        "[d] to draw cards",
+        "[u] undo",
+        "[n] new game",
+        "[h] hints",
+        "[q] to quit",
+    ],
+    "yukon": ["[u] undo", "[n] new game", "[h] hints", "[q] to quit"],
 }
 
 
@@ -150,24 +156,31 @@ class Solitaire:
         #   IF HASH DOES NOT EXIST - RETURN FALSE
         #   IF HASH DOES EXIST - CONTINUE TO CHECK
         # IF FOR LOOP IS COMPLETED WITHOUT RETURN THEN RETURN TRUE
+        if self.type == "klondike":
+            return False
 
         self._curr_state = self._get_state()
         self._available_moves = 0
 
         for i in self.ACES + self.KINGS:
-            if not self.stacks[i]:
-                continue
             for j in self.ACES + self.KINGS:
                 if j == i:
                     continue
-                # if self._is_valid_move(j, i):
                 self._available_moves += len(self.stacks[i].valid_moves(self.stacks[j]))
-                # available_moves = self.stacks[i].valid_moves(self.stacks[j])
-                # if len(available_moves) > 1:
-                # elif len(available_moves) == 1:
-        if self._available_moves > 1:
+        if self._available_moves >= 1:
             return False
         return True
+
+    def _hints(self) -> str:
+        # curr_state = self._get_state()
+        moves = []
+        for i in self.ACES + self.KINGS:
+            for j in self.ACES + self.KINGS:
+                if j == i:
+                    continue
+                if self.stacks[i].valid_moves(self.stacks[j]):
+                    moves.append(f"{j}{i}")
+        return "\n".join(moves)
 
     def _is_valid_move(self, move_from_stack: str, move_to_stack: str) -> bool:
         if move_from_stack.upper() not in self.stacks:
@@ -262,8 +275,8 @@ class Solitaire:
                     card = self.deck.deal_card()
                     self.stacks[str(i)].add(card)
 
-        if self._check_lost():
-            raise LoseGame
+            if self._check_lost():
+                raise LoseGame
 
         self._prev_state = {}
         self._hashes = [hash(self)]
@@ -308,6 +321,8 @@ class Solitaire:
                 return "Draw cards from deck...."
             case "p" if self.type == "klondike":
                 return move_to_ace(command)
+            case "h":
+                return self._hints()
             case command if command in self.KINGS and self.stacks[command]:
                 return move_to_ace(command)
             case command if len(command) == 2:
