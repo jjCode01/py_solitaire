@@ -79,6 +79,10 @@ def valid_move_to_king(from_stack: Stack, to_stack: Stack) -> list:
 
     valid_moves = []
     for i, card in enumerate(from_stack.cards):
+        # If King at top position, can't move it to another empty column
+        if i == 0 and not card.face_down and card.face == "K":
+            continue
+
         if not card.face_down and valid_king_order(to_stack, card):
             valid_moves.append(i)
     return valid_moves
