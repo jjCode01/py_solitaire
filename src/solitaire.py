@@ -389,7 +389,7 @@ class Solitaire:
                         card = stack.cards[-1]
                         if not self._move_stack(num, card.suit):
                             break
-                        sleep(0.33)
+                        sleep(0.25)
                         self._refresh(show_options=False)
 
 
